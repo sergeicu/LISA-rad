@@ -114,6 +114,8 @@ def main(args):
         writer = SummaryWriter(args.log_dir)
     else:
         writer = None
+        
+    # from IPython import embed; embed()
 
     # Create model
     tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -455,6 +457,19 @@ def train(
                 input_dict["images"] = input_dict["images"].float()
                 input_dict["images_clip"] = input_dict["images_clip"].float()
 
+            # from IPython import embed; embed()
+            
+            # first example of cocoval dataset 
+            # input_dict['image_paths']
+                # ['./dataset/coco/train2017/000000149406.jpg',
+                # './dataset/coco/train2017/000000495146.jpg']            
+            # input_dict['questions_list']
+                # [['<image>\nWhat is metal in this image? Please output segmentation mask.',
+                # '<image>\nWhat is pavement in this image? Please output segmentation mask.',
+                # '<image>\nPlease segment the motorcycle in this image.'],
+                # ['<image>\nWhat is person in this image? Please output segmentation mask.',
+                # '<image>\nCan you segment the car in this image?',
+                # '<image>\nCan you segment the boat in this image?']]            
             output_dict = model(**input_dict)
 
             loss = output_dict["loss"]
