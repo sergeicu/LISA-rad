@@ -2,3 +2,11 @@
 runs/
 .vscode/
 
+vis_output/
+flash-attention/ 
+dataset/
+cuda*
+*.png 
+vvenv*/
+venv*/
+flagged/

@@ -3,6 +3,8 @@ import json
 import os
 import random
 
+import re 
+
 import cv2
 import numpy as np
 import torch
@@ -84,6 +86,62 @@ def init_cocostuff(base_image_dir):
     print("cocostuff: ", len(cocostuff_images))
     return cocostuff_classes, cocostuff_images, cocostuff_labels
 
+def extract_json(f):
+    
+    from IPython import embed; embed()
+    with open(f) as file:
+        jk = json.load(file)
+    
+    q=jk['formatted_response']['question']
+    a=jk['formatted_response']['answer']
+    gp=jk['formatted_response']['grounding_phrase']
+    
+    a.replace(gp, "<TOK>" + gp+ "<TOK>")
+    
+    # import transformers
+    # model_max_length=512
+    # version="xinlai/LISA-7B-v1"
+    # tokenizer = transformers.AutoTokenizer.from_pretrained(
+    #     version,
+    #     cache_dir=None,
+    #     model_max_length=model_max_length,
+    #     padding_side="right",
+    #     use_fast=False,
+    # )    
+    # https://www.reddit.com/r/StableDiffusion/comments/zc65l4/rare_tokens_for_dreambooth_training_stable/
+    
+    
+    return q,a
+    
+    
+
+def init_bchwrist(base_image_dir):
+    bchwrist_classes = []
+    with open("utils/bchwrist_classes.txt") as f:
+        for line in f.readlines()[0:]:
+            bchwrist_classes.append(line.strip().split(": ")[-1])
+    bchwrist_classes = np.array(bchwrist_classes)
+    bchwrist_images = []
+
+    bchwrist_labels = glob.glob(
+        os.path.join(base_image_dir, "bchwrist_labels", "train", "*.png")
+    )
+    bchwrist_images = [
+        x.replace("bchwrist_labels", "bchwrist_images") for x in bchwrist_labels
+    ]
+
+    bchwrist_reports = [re.match(r'^\d+', os.path.basename(filename))[0]+'_report_v8.json' for filename in bchwrist_labels]
+    bchwrist_reports = [
+        base_image_dir + '/bchwrist_reports/train/'+x for x in bchwrist_reports
+    ]        
+    
+    
+    qa = [ extract_json(f) for f in bchwrist_reports]
+    
+
+    print("bchwrist: ", len(bchwrist_images))
+    return bchwrist_classes, bchwrist_images, bchwrist_labels, bchwrist_reports
+
 
 def init_paco_lvis(base_image_dir):
     coco_api_paco_lvis = COCO(
@@ -140,8 +198,10 @@ class SemSegDataset(torch.utils.data.Dataset):
         image_size: int = 224,
         num_classes_per_sample: int = 3,
         exclude_val=False,
-        sem_seg_data="ade20k||cocostuff||partimagenet||pascal_part||paco_lvis||mapillary",
+        sem_seg_data="ade20k||cocostuff||partimagenet||pascal_part||paco_lvis||mapillary||bchwrist",
+        grounded=False,
     ):
+        self.grounded=grounded
         self.exclude_val = exclude_val
         self.samples_per_epoch = samples_per_epoch
         self.num_classes_per_sample = num_classes_per_sample
@@ -161,7 +221,7 @@ class SemSegDataset(torch.utils.data.Dataset):
 
         self.sem_seg_datas = sem_seg_data.split("||")
         for ds in self.sem_seg_datas:
-            classes, images, labels = eval("init_{}".format(ds))(base_image_dir)
+            classes, images, labels,jsons = eval("init_{}".format(ds))(base_image_dir)
             self.data2list[ds] = (images, labels)
             self.data2classes[ds] = classes
 
@@ -169,6 +229,12 @@ class SemSegDataset(torch.utils.data.Dataset):
             self.cocostuff_class2index = {
                 c: i for i, c in enumerate(self.data2classes["cocostuff"])
             }
+            
+        if "bchwrist" in self.sem_seg_datas:
+            self.bchwrist_class2index = {
+                c: i for i, c in enumerate(self.data2classes["bchwrist"])
+            }          
+            
 
     def __len__(self):
         return self.samples_per_epoch
@@ -235,7 +301,7 @@ class SemSegDataset(torch.utils.data.Dataset):
                     name = sampled_cls
                 sampled_classes.append(name)
 
-        elif ds in ["ade20k", "cocostuff", "mapillary"]:
+        elif ds in ["ade20k", "cocostuff", "mapillary", "bchwrist"]:
             image, labels = self.data2list[ds]
             idx = random.randint(0, len(image) - 1)
             image_path = image[idx]
@@ -250,6 +316,10 @@ class SemSegDataset(torch.utils.data.Dataset):
                 for c, i in self.cocostuff_class2index.items():
                     if "-" in c:
                         label[label == i] = 255
+            elif ds == "bchwrist":
+                for c, i in self.bchwrist_class2index.items():
+                    if "-" in c:
+                        label[label == i] = 255                        
             img = cv2.imread(image_path)
             image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             # preprocess image for clip
@@ -275,6 +345,7 @@ class SemSegDataset(torch.utils.data.Dataset):
         questions = []
         answers = []
         class_ids = []
+        # sv407 - this is where questions get asked 
         for sampled_cls in sampled_classes:
             text = sampled_cls
 

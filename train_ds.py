@@ -23,6 +23,7 @@ from utils.utils import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="LISA Model Training")
+    parser.add_argument("--grounded", action="store_true", help="whether to do grounded inferrene with bchwrist dataset")
     parser.add_argument("--local_rank", default=0, type=int, help="node rank")
     parser.add_argument(
         "--version", default="liuhaotian/llava-llama-2-13b-chat-lightning-preview"
@@ -115,7 +116,6 @@ def main(args):
     else:
         writer = None
         
-    # from IPython import embed; embed()
 
     # Create model
     tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -126,8 +126,11 @@ def main(args):
         use_fast=False,
     )
     tokenizer.pad_token = tokenizer.unk_token
-    num_added_tokens = tokenizer.add_tokens("[SEG]")
+    num_added_tokens = tokenizer.add_tokens("[SEG]")    
     args.seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]
+    
+    # add grounding token 
+    num_added_tokens = tokenizer.add_tokens("[OBJ]")    
 
     if args.use_mm_start_end:
         tokenizer.add_tokens(
@@ -250,6 +253,7 @@ def main(args):
         vqa_data=args.vqa_data,
         reason_seg_data=args.reason_seg_data,
         explanatory=args.explanatory,
+        grounded=args.grounded,
     )
 
     if args.no_eval == False:
@@ -467,10 +471,13 @@ def train(
                 # [['<image>\nWhat is metal in this image? Please output segmentation mask.',
                 # '<image>\nWhat is pavement in this image? Please output segmentation mask.',
                 # '<image>\nPlease segment the motorcycle in this image.'],
+                
                 # ['<image>\nWhat is person in this image? Please output segmentation mask.',
                 # '<image>\nCan you segment the car in this image?',
                 # '<image>\nCan you segment the boat in this image?']]            
             output_dict = model(**input_dict)
+            
+            # from IPython import embed; embed()
 
             loss = output_dict["loss"]
             ce_loss = output_dict["ce_loss"]

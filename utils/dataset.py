@@ -178,11 +178,12 @@ class HybridDataset(torch.utils.data.Dataset):
         exclude_val=False,
         dataset="sem_seg||refer_seg||vqa||reason_seg",
         sample_rate=[9, 3, 3, 1],
-        sem_seg_data="ade20k||cocostuff||partimagenet||pascal_part||paco_lvis||mapillary",
+        sem_seg_data="ade20k||cocostuff||partimagenet||pascal_part||paco_lvis||mapillary||bchwrist",
         refer_seg_data="refclef||refcoco||refcoco+||refcocog",
         vqa_data="llava_instruct_150k",
         reason_seg_data="ReasonSeg|train",
         explanatory=0.1,
+        grounded=False
     ):
         self.exclude_val = exclude_val
         self.dataset = dataset
@@ -213,6 +214,7 @@ class HybridDataset(torch.utils.data.Dataset):
                         num_classes_per_sample,
                         exclude_val,
                         sem_seg_data,
+                        grounded,
                     )
                 )
             elif dataset == "refer_seg":

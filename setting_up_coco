@@ -1,0 +1,22 @@
+# very brief guide: 
+
+1. Create two folders in dataset: 
+coco - this is where images go 
+cocostuff - this is where labels (as images) go.
+
+
+2. original coco images are in: 
+/lab-share/Rad-Afacan-e2/Public/serge/code/llm/experiments/yolov7/yolov7/coco
+
+this comes from this zip file download: 
+coco2017labels-segments.zip
+
+3. coco labels (as images) are not provided with this dataset - 
+download them here and extract - 
+
+stuffthingmaps_trainval2017.zip
+
+4. place validation dataset for images in dataset/coco/train2017 
+4. place validation dataset for labels in dataset/cocostuff/train2017 
+
+there should be 5000 images. 
