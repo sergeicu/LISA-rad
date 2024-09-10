@@ -226,6 +226,19 @@ def main(args):
 
         input_ids = tokenizer_image_token(prompt, tokenizer, return_tensors="pt")
         input_ids = input_ids.unsqueeze(0).cuda()
+        
+        # Define the new tokens
+        additional_tokens = {
+            "<im_end>": 32002,
+            "<im_patch>": 32000,
+            "<im_start>": 32001,
+            "[SEG]": 32003
+        }
+
+        # Add the new tokens to the tokenizer
+        for token, id in additional_tokens.items():
+            tokenizer.add_tokens([token], special_tokens=True) 
+                    
 
         output_ids, pred_masks = model.evaluate(
             image_clip,
@@ -243,7 +256,10 @@ def main(args):
         #     tokenizer.decode(output_ids[-3], skip_special_tokens=False)
         
         from IPython import embed; embed()
-        text_output = tokenizer.decode(output_ids, skip_special_tokens=True) # sv407 - temporary skip 
+        
+
+                   
+        text_output = tokenizer.decode(output_ids, skip_special_tokens=False) # sv407 - temporary skip 
         text_output = text_output.replace("\n", "").replace("  ", " ")
         print("text_output: ", text_output)
 
