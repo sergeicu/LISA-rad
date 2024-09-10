@@ -19,6 +19,7 @@ from utils.utils import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
 def parse_args(args):
     parser = argparse.ArgumentParser(description="LISA chat")
     parser.add_argument("--version", default="xinlai/LISA-13B-llama2-v1")
+    parser.add_argument("--local_model_path", default=None, type=str, help="Path to local model weights")
     parser.add_argument("--vis_save_path", default="./vis_output", type=str)
     parser.add_argument(
         "--precision",
@@ -76,7 +77,10 @@ def main(args):
         use_fast=False,
     )
     tokenizer.pad_token = tokenizer.unk_token
+    # num_added_tokens = tokenizer.add_tokens("[SEG]")   
     args.seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]
+    
+    # num_added_tokens = tokenizer.add_tokens("[OBJ]")    
 
 
     torch_dtype = torch.float32
@@ -111,9 +115,24 @@ def main(args):
             }
         )
 
-    model = LISAForCausalLM.from_pretrained(
-        args.version, low_cpu_mem_usage=True, vision_tower=args.vision_tower, seg_token_idx=args.seg_token_idx, **kwargs
-    )
+    if args.local_model_path:
+        # Load the model from local path
+        model = LISAForCausalLM.from_pretrained(
+            args.local_model_path,
+            low_cpu_mem_usage=True,
+            vision_tower=args.vision_tower,
+            seg_token_idx=args.seg_token_idx,
+            **kwargs
+        )
+    else:
+        # Load the model from Hugging Face
+        model = LISAForCausalLM.from_pretrained(
+            args.version,
+            low_cpu_mem_usage=True,
+            vision_tower=args.vision_tower,
+            seg_token_idx=args.seg_token_idx,
+            **kwargs
+        )
 
     model.config.eos_token_id = tokenizer.eos_token_id
     model.config.bos_token_id = tokenizer.bos_token_id
@@ -218,8 +237,13 @@ def main(args):
             tokenizer=tokenizer,
         )
         output_ids = output_ids[0][output_ids[0] != IMAGE_TOKEN_INDEX]
-
-        text_output = tokenizer.decode(output_ids, skip_special_tokens=False)
+        # from IPython import embed; embed()
+        # for c,i in enumerate(output_ids):
+        #     print(c)
+        #     tokenizer.decode(output_ids[-3], skip_special_tokens=False)
+        
+        from IPython import embed; embed()
+        text_output = tokenizer.decode(output_ids, skip_special_tokens=True) # sv407 - temporary skip 
         text_output = text_output.replace("\n", "").replace("  ", " ")
         print("text_output: ", text_output)
 
