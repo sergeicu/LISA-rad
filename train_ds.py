@@ -126,11 +126,14 @@ def main(args):
         use_fast=False,
     )
     tokenizer.pad_token = tokenizer.unk_token
+    
+    # https://chatgpt.com/share/2e1c97dc-af7b-4469-a722-1319c4f70d06 - more here about adding tokens
+
     num_added_tokens = tokenizer.add_tokens("[SEG]")    
     args.seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]
     
     # add grounding token 
-    num_added_tokens = tokenizer.add_tokens("[OBJ]")    
+    # num_added_tokens = tokenizer.add_tokens("[OBJ]")    
 
     if args.use_mm_start_end:
         tokenizer.add_tokens(

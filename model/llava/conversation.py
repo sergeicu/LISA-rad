@@ -284,6 +284,19 @@ conv_vicuna_v1 = Conversation(
     sep2="</s>",
 )
 
+
+conv_bch_v1 = Conversation(
+    system="A chat between a radiologist and an artificial intelligence assistant specializing in radiology. "
+    "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines.",
+    roles=("USER", "ASSISTANT"),
+    version="v1",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.TWO,
+    sep=" ",
+    sep2="</s>",
+)
+
 conv_llama_2 = Conversation(
     system="""You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.
 

@@ -27,5 +27,9 @@ python train_ds.py \
 
 
 
+# tried installing 
+cudatoolkit-11.8.0
+
+
 # checkpoint issue of training 
 https://github.com/microsoft/DeepSpeed/issues/3810

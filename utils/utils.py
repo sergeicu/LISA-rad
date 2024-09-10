@@ -12,6 +12,20 @@ DEFAULT_IMAGE_PATCH_TOKEN = "<im_patch>"
 DEFAULT_IM_START_TOKEN = "<im_start>"
 DEFAULT_IM_END_TOKEN = "<im_end>"
 
+SHORT_OBJ_LIST = [
+    "Pinpoint its location in the report.",
+    "Specify where it is mentioned in the report.",
+    "Indicate the area described in the report.",
+    "Highlight the location within the report.",
+    "Mark the position as described in the report.",
+    "Locate the specific mention in the report.",
+    "Show where it is detailed in the report.",
+    "Outline its location in the report.",
+    "Find where it's described in the report.",
+    "Identify the section that describes its location in the report."
+]
+
+
 SHORT_QUESTION_LIST = [
     DEFAULT_IMAGE_TOKEN + "\n" + "Can you segment the {class_name} in this image?",
     DEFAULT_IMAGE_TOKEN + "\n" + "Please segment the {class_name} in this image.",

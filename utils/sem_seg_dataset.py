@@ -16,7 +16,11 @@ from transformers import CLIPImageProcessor
 from model.llava import conversation as conversation_lib
 from model.segment_anything.utils.transforms import ResizeLongestSide
 
-from .utils import ANSWER_LIST, SHORT_QUESTION_LIST
+from .utils import ANSWER_LIST, SHORT_QUESTION_LIST,SHORT_OBJ_LIST
+
+
+
+DEFAULT_IMAGE_TOKEN = "<image>"
 
 
 def init_mapillary(base_image_dir):
@@ -86,9 +90,8 @@ def init_cocostuff(base_image_dir):
     print("cocostuff: ", len(cocostuff_images))
     return cocostuff_classes, cocostuff_images, cocostuff_labels
 
-def extract_json(f):
+def extract_json(f,grounded=True):
     
-    from IPython import embed; embed()
     with open(f) as file:
         jk = json.load(file)
     
@@ -96,7 +99,29 @@ def extract_json(f):
     a=jk['formatted_response']['answer']
     gp=jk['formatted_response']['grounding_phrase']
     
-    a.replace(gp, "<TOK>" + gp+ "<TOK>")
+    if grounded: 
+        
+        # # OPTION 1: replace 
+        # if not gp in a:
+        #     # print(gp)
+        
+        #     # Split both strings into words
+        #     gp_words = gp.split()
+        #     a_words = a.split()
+
+        #     # Keep only words in gp that are also in a
+        #                                     # gp_filtered = []
+        #                                     # for word in a_words:
+        #                                     #     gp_filtered.append(word)
+        #                                     # gp_filtered = ' '.join(gp_filtered)
+        #     gp = ' '.join(word for word in gp_words if word in a_words)
+        # a = a.replace(gp, "[OBJ]" + gp+ "[OBJ]")
+        
+        # OPTION 2: append 
+        a = a + "[OBJ]" + gp+ "[OBJ]"
+    
+
+    
     
     # import transformers
     # model_max_length=512
@@ -140,7 +165,7 @@ def init_bchwrist(base_image_dir):
     
 
     print("bchwrist: ", len(bchwrist_images))
-    return bchwrist_classes, bchwrist_images, bchwrist_labels, bchwrist_reports
+    return bchwrist_classes, bchwrist_images, bchwrist_labels, qa
 
 
 def init_paco_lvis(base_image_dir):
@@ -215,13 +240,19 @@ class SemSegDataset(torch.utils.data.Dataset):
 
         self.short_question_list = SHORT_QUESTION_LIST
         self.answer_list = ANSWER_LIST
+        self.obj_list = SHORT_OBJ_LIST
 
         self.data2list = {}
         self.data2classes = {}
+        self.data2qa = {}
 
         self.sem_seg_datas = sem_seg_data.split("||")
         for ds in self.sem_seg_datas:
-            classes, images, labels,jsons = eval("init_{}".format(ds))(base_image_dir)
+            if 'bchwrist' in ds:
+                classes, images, labels,qa = eval("init_{}".format(ds))(base_image_dir)
+                self.data2qa[ds] = qa
+            else:
+                classes, images, labels = eval("init_{}".format(ds))(base_image_dir)
             self.data2list[ds] = (images, labels)
             self.data2classes[ds] = classes
 
@@ -304,6 +335,12 @@ class SemSegDataset(torch.utils.data.Dataset):
         elif ds in ["ade20k", "cocostuff", "mapillary", "bchwrist"]:
             image, labels = self.data2list[ds]
             idx = random.randint(0, len(image) - 1)
+            
+            # sampled from gpt 
+            qa_from_gpt = self.data2qa[ds]
+            q_=qa_from_gpt[idx][0]
+            a_=qa_from_gpt[idx][1]
+                        
             image_path = image[idx]
             label_path = labels[idx]
             label = Image.open(label_path)
@@ -348,12 +385,25 @@ class SemSegDataset(torch.utils.data.Dataset):
         # sv407 - this is where questions get asked 
         for sampled_cls in sampled_classes:
             text = sampled_cls
+            
+            # get object 
+            obj_template = random.choice(self.obj_list)
+            
 
             assert len(text.split("||")) == 1
-            question_template = random.choice(self.short_question_list)
-            questions.append(question_template.format(class_name=text.lower()))
+            
+            # question_template = random.choice(self.short_question_list)
+            q = q_ + ' ' + obj_template
+            questions.append(q.format(class_name=text.lower()))
 
-            answers.append(random.choice(self.answer_list))
+            # answers.append(random.choice(self.answer_list))
+            answers.append(a_ + "[SEG]")
+            
+            
+            # question_template = random.choice(self.short_question_list)
+            # questions.append(question_template.format(class_name=text.lower()))
+
+            # answers.append(random.choice(self.answer_list))
 
             if ds in ["paco_lvis", "pascal_part"]:
                 continue
