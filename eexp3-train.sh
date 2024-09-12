@@ -1,6 +1,111 @@
+
+srun --pty tmux new-session -d 'watch -n 60 date'
+srun -A bch -p bch-compute --pty tmux new-session -d 'watch -n 60 date'
+
+srun --jobid=2716185 --pty /bin/bash
+
+########################################################
+
+# 4 GPU - A100,A40 x crl & bch-gpu-pe
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A100:4 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A40:4 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A crl -p crl-gpu -t 200:00:00 --qos=crl --gres=gpu:NVIDIA_A40:4 #--pty /bin/bash -c "while true; do sleep 60; done"
+
+# 2 GPU - A100,A40 x crl & bch-gpu-pe
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A100:2 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A40:2 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A crl -p crl-gpu -t 200:00:00 --qos=crl --gres=gpu:NVIDIA_A40:2 #--pty /bin/bash -c "while true; do sleep 60; done"
+
+# 1 GPU - A100,A40 x crl & bch-gpu-pe
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A100:1 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A40:1 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A crl -p crl-gpu -t 200:00:00 --qos=crl --gres=gpu:NVIDIA_A40:1 #--pty /bin/bash -c "while true; do sleep 60; done"
+
+# 1 GPU - A100,A40 x crl & bch-gpu-pe
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A100:1 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A40:1 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A crl -p crl-gpu -t 200:00:00 --qos=crl --gres=gpu:NVIDIA_A40:1 #--pty /bin/bash -c "while true; do sleep 60; done"
+
+# bch-gpu (not A100 or A40)
+salloc -A bch -p bch-gpu -t 200:00:00 --gres=gpu:4 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A bch -p bch-gpu -t 200:00:00 --gres=gpu:2 #--pty /bin/bash -c "while true; do sleep 60; done"
+salloc -A bch -p bch-gpu -t 200:00:00 --gres=gpu:1 #--pty /bin/bash -c "while true; do sleep 60; done"
+
+
+########################################################
+
+srun -A bch -p bch-compute -t 2:00:00 --pty /bin/bash -c "top" 
+
+# 4 GPU - A100,A40 x crl & bch-gpu-pe
+srun -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A100:4 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A40:4 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A crl -p crl-gpu -t 200:00:00 --qos=crl --gres=gpu:NVIDIA_A40:4 --pty /bin/bash -c "while true; do sleep 60; done"
+
+# 2 GPU - A100,A40 x crl & bch-gpu-pe
+srun -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A100:2 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A40:2 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A crl -p crl-gpu -t 200:00:00 --qos=crl --gres=gpu:NVIDIA_A40:2 --pty /bin/bash -c "while true; do sleep 60; done"
+
+# 1 GPU - A100,A40 x crl & bch-gpu-pe
+srun -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A100:1 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A40:1 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A crl -p crl-gpu -t 200:00:00 --qos=crl --gres=gpu:NVIDIA_A40:1 --pty /bin/bash -c "while true; do sleep 60; done"
+
+# 1 GPU - A100,A40 x crl & bch-gpu-pe
+srun -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A100:1 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A40:1 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A crl -p crl-gpu -t 200:00:00 --qos=crl --gres=gpu:NVIDIA_A40:1 --pty /bin/bash -c "while true; do sleep 60; done"
+
+# bch-gpu (not A100 or A40)
+srun -A bch -p bch-gpu -t 200:00:00 --gres=gpu:4 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A bch -p bch-gpu -t 200:00:00 --gres=gpu:2 --pty /bin/bash -c "while true; do sleep 60; done"
+srun -A bch -p bch-gpu -t 200:00:00 --gres=gpu:1 --pty /bin/bash -c "while true; do sleep 60; done"
+
+
+########################################################
+
+
+
+# monitor slurm 
+watch -n 10 squeue -u $USER
+watch -n 10 'squeue | grep gpu'
+squeue --sort=P -O jobid,name,partition,state,priority | grep gpu
+squeue --sort=-P -o "%.18i %.20j %.9u %.9P %.12T %.6p" | grep gpu
+
+squeue --sort=-P -o "%.18i %.20j %.9u %.9P %.12T %.6p %V" | grep gpu
+
+
+
+
 # see available machines 
 sinfo -o "%30N %30c %30m %30G"
-sinfo 
+sinfo -o "%30N %30c %30m %30G %30P"
+
+# how many jobs were submitted to partition in last 7 days 
+sacct --starttime=$(date --date='7 days ago' +%Y-%m-%d) --partition=fnndsc-gpu --format=JobID --noheader | wc -l
+
+# fnndsc-gpu usage last 7 days 
+$ sacct --starttime=$(date --date='7 days ago' +%Y-%m-%d) --partition=fnndsc-gpu --format=JobID --noheader | wc -l
+0
+# crl-gpu usage last 7 days 
+$ sacct --starttime=$(date --date='7 days ago' +%Y-%m-%d) --partition=crl-gpu --format=JobID --noheader | wc -l
+76
+
+# fnndsc-gpu usage last 30 days 
+$ sacct --starttime=$(date --date='30 days ago' +%Y-%m-%d) --partition=fnndsc-gpu --format=JobID --noheader | wc -l
+0
+# crl-gpu usage last 30 days 
+$ sacct --starttime=$(date --date='7 days ago' +%Y-%m-%d) --partition=crl-gpu --format=JobID --noheader | wc -l
+206
+
+p=bchen-gpu; sacct --starttime=$(date --date='7 days ago' +%Y-%m-%d) --partition=$p --format=JobID --noheader | wc -l
+p=chip-gpu; sacct --starttime=$(date --date='7 days ago' +%Y-%m-%d) --partition=$p --format=JobID --noheader | wc -l
+
+sacct --partition=bch-gpu --format=JobID,JobName,Partition,AllocCPUs,State,Elapsed,Start,End --starttime=<start_date> --endtime=<end_date>
+
+
+
+
 
 # sleep 
 while true; do sleep 60; done
@@ -16,6 +121,8 @@ scontrol show job <jobid>
 
 # activate 
 ssh ch215616@e3-login.tch.harvard.edu
+
+
 
 srun -A crl -p bch-compute -t 1:00:00 --qos=crl --pty /bin/bash 
 srun -A crl -p crl-gpu -t 1:00:00 --qos=crl --gres=gpu:4  --pty /bin/bash 
@@ -35,7 +142,7 @@ export HF_HOME=/lab-share/Rad-Afacan-e2/Public/serge/code/huggingface_cache/
 # check weights 
 huggingface-cli scan-cache     
 ls /lab-share/Rad-Afacan-e2/Public/serge/code/huggingface_cache/hub/
-
+ 
 # we have the following models 
 models--liuhaotian--llava-v1.5-7b # original llava 1.5 weights (already trained) but not lightning? 
 models--xinlai--LISA-7B-v1 # original lisa weights obtained for lisa paper - for inference 

@@ -1,4 +1,5 @@
-[UNUSED BECAUSE WE MOVED AWAY FROM TEMP_WORK]
+ssa[UNUSED BECAUSE WE MOVED AWAY FROM TEMP_WORK]
+hei
 
 # which environments were installed 
 conda activate /temp_work/ch215616/miniconda33/envs/glamm_e2

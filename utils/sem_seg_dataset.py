@@ -20,9 +20,6 @@ from .utils import ANSWER_LIST, SHORT_QUESTION_LIST,SHORT_OBJ_LIST
 
 
 
-DEFAULT_IMAGE_TOKEN = "<image>"
-
-
 def init_mapillary(base_image_dir):
     mapillary_data_root = os.path.join(base_image_dir, "mapillary")
     with open(os.path.join(mapillary_data_root, "config_v2.0.json")) as f:
@@ -392,18 +389,22 @@ class SemSegDataset(torch.utils.data.Dataset):
 
             assert len(text.split("||")) == 1
             
-            # question_template = random.choice(self.short_question_list)
-            q = q_ + ' ' + obj_template
-            questions.append(q.format(class_name=text.lower()))
-
-            # answers.append(random.choice(self.answer_list))
-            answers.append(a_ + "[SEG]")
-            
-            
+            # OLD QUESTIONS 
             # question_template = random.choice(self.short_question_list)
             # questions.append(question_template.format(class_name=text.lower()))
 
+            # NEW QUESTIONS 
+            question_template = random.choice(self.short_question_list)
+            q = q_ + ' ' + obj_template
+            questions.append(q.format(class_name=text.lower()))
+                
+            # OLD ANSWERS         
             # answers.append(random.choice(self.answer_list))
+
+            # NEW ANSWERS 
+            answers.append(random.choice(self.answer_list))
+            answers.append(a_ + "[SEG]")
+
 
             if ds in ["paco_lvis", "pascal_part"]:
                 continue

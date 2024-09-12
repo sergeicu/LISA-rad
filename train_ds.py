@@ -477,7 +477,8 @@ def train(
                 
                 # ['<image>\nWhat is person in this image? Please output segmentation mask.',
                 # '<image>\nCan you segment the car in this image?',
-                # '<image>\nCan you segment the boat in this image?']]            
+                # '<image>\nCan you segment the boat in this image?']]      
+            from IPython import embed; embed()      
             output_dict = model(**input_dict)
             
             # from IPython import embed; embed()
