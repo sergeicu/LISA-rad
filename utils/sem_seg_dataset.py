@@ -390,20 +390,20 @@ class SemSegDataset(torch.utils.data.Dataset):
             assert len(text.split("||")) == 1
             
             # OLD QUESTIONS 
-            # question_template = random.choice(self.short_question_list)
-            # questions.append(question_template.format(class_name=text.lower()))
+            question_template = random.choice(self.short_question_list)
+            questions.append(question_template.format(class_name=text.lower()))
 
             # NEW QUESTIONS 
-            question_template = random.choice(self.short_question_list)
-            q = q_ + ' ' + obj_template
-            questions.append(q.format(class_name=text.lower()))
+            # question_template = random.choice(self.short_question_list)
+            # q = q_ + ' ' + obj_template
+            # questions.append(q.format(class_name=text.lower()))
                 
             # OLD ANSWERS         
-            # answers.append(random.choice(self.answer_list))
+            answers.append(random.choice(self.answer_list))
 
             # NEW ANSWERS 
-            answers.append(random.choice(self.answer_list))
-            answers.append(a_ + "[SEG]")
+            # answers.append(random.choice(self.answer_list))
+            # answers.append(a_ + "[SEG]")
 
 
             if ds in ["paco_lvis", "pascal_part"]:
