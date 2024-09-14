@@ -6,11 +6,20 @@ https://chatgpt.com/share/89e40b5f-e94c-4bd4-af0b-b6fbed721ca5
 mount -t nfs -o noauto,_netdev,hard,comment=systemd.automount,nofail rc-fs-nfs.tch.harvard.edu:/Rad-Afacan-e2 /lab-share/Rad-Afacan-e2
 
 
+# installed condas 
+lisa2 - python 3.10 + pip freeze on glamm_e2 
+lisa2_cu121 -> torch2, with cu121 
+lisa2_cu126 -> torch2, with cu126 
+lisa3 -> reproducing glamm_e2 
+
+
+
 # init 
 srun -A crl -p bch-gpu-pe -t 1:00:00 --gres=gpu:NVIDIA_A40:1  --pty /bin/bash 
 cd /home/ch215616/ww/code/llm/experiments/LISA
 # conda activate glamm_e2
 conda activate lisa2
+lisa3 -> tries to copy the exact environment that glamm_e2 is 
 
 
 # train normal 
@@ -31,7 +40,7 @@ python train_ds.py \
   --sample_rates="1" \
   --no_eval \
   --batch_size=1 \
-  --exp_name="lisa-7b6233g" 
+  --exp_name="lisa-7b62334g"   
 
 
 

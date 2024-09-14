@@ -18,6 +18,7 @@ from model.segment_anything.utils.transforms import ResizeLongestSide
 
 from .utils import ANSWER_LIST, SHORT_QUESTION_LIST,SHORT_OBJ_LIST
 
+DEFAULT_IMAGE_TOKEN = "<image>"
 
 
 def init_mapillary(base_image_dir):
@@ -135,7 +136,6 @@ def extract_json(f,grounded=True):
     
     return q,a
     
-    
 
 def init_bchwrist(base_image_dir):
     bchwrist_classes = []
@@ -222,7 +222,11 @@ class SemSegDataset(torch.utils.data.Dataset):
         exclude_val=False,
         sem_seg_data="ade20k||cocostuff||partimagenet||pascal_part||paco_lvis||mapillary||bchwrist",
         grounded=False,
+        deterministic=False,
+        shorten=False,
     ):
+        self.shorten = shorten
+        self.deterministic=deterministic
         self.grounded=grounded
         self.exclude_val = exclude_val
         self.samples_per_epoch = samples_per_epoch
@@ -247,6 +251,11 @@ class SemSegDataset(torch.utils.data.Dataset):
         for ds in self.sem_seg_datas:
             if 'bchwrist' in ds:
                 classes, images, labels,qa = eval("init_{}".format(ds))(base_image_dir)
+                if self.shorten:
+                    classes = classes[:4]
+                    images = images[:4]
+                    labels = labels[:4]
+                    qa = qa[:4]
                 self.data2qa[ds] = qa
             else:
                 classes, images, labels = eval("init_{}".format(ds))(base_image_dir)
@@ -286,7 +295,7 @@ class SemSegDataset(torch.utils.data.Dataset):
         if ds in ["paco_lvis", "pascal_part"]:
             class_map = self.data2classes[ds]
             img_ids, coco_api = self.data2list[ds]
-            idx = random.randint(0, len(img_ids) - 1)
+            idx = random.randint(0, len(img_ids) - 1) if not self.deterministic else 0
             img_id = img_ids[idx]
             image_info = coco_api.loadImgs([img_id])[0]
             file_name = image_info["file_name"]
@@ -331,7 +340,7 @@ class SemSegDataset(torch.utils.data.Dataset):
 
         elif ds in ["ade20k", "cocostuff", "mapillary", "bchwrist"]:
             image, labels = self.data2list[ds]
-            idx = random.randint(0, len(image) - 1)
+            idx = random.randint(0, len(image) - 1) if not self.deterministic else 0
             
             # sampled from gpt 
             qa_from_gpt = self.data2qa[ds]
@@ -384,26 +393,33 @@ class SemSegDataset(torch.utils.data.Dataset):
             text = sampled_cls
             
             # get object 
-            obj_template = random.choice(self.obj_list)
+            obj_template = random.choice(self.obj_list) if not self.deterministic else self.obj_list[0]
             
 
             assert len(text.split("||")) == 1
             
-            # OLD QUESTIONS 
-            question_template = random.choice(self.short_question_list)
-            questions.append(question_template.format(class_name=text.lower()))
-
-            # NEW QUESTIONS 
-            # question_template = random.choice(self.short_question_list)
-            # q = q_ + ' ' + obj_template
-            # questions.append(q.format(class_name=text.lower()))
+            # NEW QUESTIONS ANSWERS
+            if self.grounded: 
                 
-            # OLD ANSWERS         
-            answers.append(random.choice(self.answer_list))
+                q = DEFAULT_IMAGE_TOKEN + "\n" + q_ + ' ' + obj_template 
+                questions.append(q.format(class_name=text.lower()))   # should be:  DEFAULT_IMAGE_TOKEN + "\n" + <q from llava> + "Pinpoint its location in the report.",
 
-            # NEW ANSWERS 
-            # answers.append(random.choice(self.answer_list))
-            # answers.append(a_ + "[SEG]")
+                answer_template = random.choice(self.answer_list) if not self.deterministic else self.answer_list[0]
+                answers.append(answer_template + a_ ) # should be:  
+                
+                # print(f"questions are:\n{questions}")
+                # print(f"answers are:\n{answers}")
+
+            # OLD QUESTIONS ANSWERS
+            else:            
+            
+                question_template = random.choice(self.short_question_list) if not self.deterministic else self.short_question_list[0]
+                questions.append(question_template.format(class_name=text.lower()))
+       
+                answers.append(random.choice(self.answer_list))
+
+
+
 
 
             if ds in ["paco_lvis", "pascal_part"]:
@@ -413,7 +429,10 @@ class SemSegDataset(torch.utils.data.Dataset):
             class_ids.append(class_id)
 
         conversations = []
-        conv = conversation_lib.default_conversation.copy()
+        if self.grounded:
+            conv = conversation_lib.conv_bch_v1.copy()
+        else:
+            conv = conversation_lib.default_conversation.copy()
 
         i = 0
         while i < len(questions):

@@ -183,7 +183,9 @@ class HybridDataset(torch.utils.data.Dataset):
         vqa_data="llava_instruct_150k",
         reason_seg_data="ReasonSeg|train",
         explanatory=0.1,
-        grounded=False
+        grounded=False, 
+        deterministic=False,
+        shorten=False
     ):
         self.exclude_val = exclude_val
         self.dataset = dataset
@@ -215,6 +217,8 @@ class HybridDataset(torch.utils.data.Dataset):
                         exclude_val,
                         sem_seg_data,
                         grounded,
+                        deterministic,
+                        shorten,
                     )
                 )
             elif dataset == "refer_seg":

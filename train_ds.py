@@ -23,6 +23,8 @@ from utils.utils import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="LISA Model Training")
+    parser.add_argument("--shorten", action="store_true", help="shortens bch dataset to 4 samples only")
+    parser.add_argument("--deterministic", action="store_true", help="does not do random picking of q&a prompts")
     parser.add_argument("--grounded", action="store_true", help="whether to do grounded inferrene with bchwrist dataset")
     parser.add_argument("--local_rank", default=0, type=int, help="node rank")
     parser.add_argument(
@@ -257,6 +259,9 @@ def main(args):
         reason_seg_data=args.reason_seg_data,
         explanatory=args.explanatory,
         grounded=args.grounded,
+        deterministic=args.deterministic, 
+        shorten=args.shorten, 
+        
     )
 
     if args.no_eval == False:
@@ -323,6 +328,8 @@ def main(args):
             local_rank=args.local_rank,
         ),
         config=ds_config,
+        distributed_port=29500,
+        
     )
 
     # resume deepspeed checkpoint
