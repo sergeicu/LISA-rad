@@ -100,11 +100,18 @@ def parse_args(args):
     parser.add_argument("--train_mask_decoder", action="store_true", default=True)
     parser.add_argument("--use_mm_start_end", action="store_true", default=True)
     parser.add_argument("--auto_resume", action="store_true", default=True)
+    
+    
+    
+    
+    parser.add_argument("--distributed_port", type=int, default=29500)
+    
+    
     parser.add_argument(
         "--conv_type",
         default="llava_v1",
         type=str,
-        choices=["llava_v1", "llava_llama_2"],
+        choices=["llava_v1", "llava_llama_2","conv_bch_v1"],
     )
     return parser.parse_args(args)
 
@@ -118,7 +125,13 @@ def main(args):
     else:
         writer = None
         
+    # print("PLEASE CHECK THAT GROUNDING IS ON")
+    # from IPython import embed; embed()
+        
 
+    ####################################
+    # Prepare tokenizer 
+    ####################################
     # Create model
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         args.version,
@@ -129,18 +142,22 @@ def main(args):
     )
     tokenizer.pad_token = tokenizer.unk_token
     
-    # https://chatgpt.com/share/2e1c97dc-af7b-4469-a722-1319c4f70d06 - more here about adding tokens
-
-    num_added_tokens = tokenizer.add_tokens("[SEG]")    
-    args.seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]
-    
-    # add grounding token 
-    # num_added_tokens = tokenizer.add_tokens("[OBJ]")    
-
     if args.use_mm_start_end:
         tokenizer.add_tokens(
             [DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN], special_tokens=True
         )
+    phrase_tokens = ['<p>', '</p>']
+    segmentation_tokens = ['[SEG]']
+    special_tokens = segmentation_tokens + phrase_tokens
+    num_added_tokens = tokenizer.add_tokens(special_tokens, special_tokens=True)
+    
+    
+    args.seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]        
+    args.bop_token_idx = tokenizer("<p>", add_special_tokens=False).input_ids[0]
+    args.eop_token_idx = tokenizer("</p>", add_special_tokens=False).input_ids[0]
+    
+    # https://chatgpt.com/share/2e1c97dc-af7b-4469-a722-1319c4f70d06 - more here about adding tokens
+        
 
     model_args = {
         "train_mask_decoder": args.train_mask_decoder,
@@ -152,6 +169,8 @@ def main(args):
         "vision_pretrained": args.vision_pretrained,
         "vision_tower": args.vision_tower,
         "use_mm_start_end": args.use_mm_start_end,
+        "eop_token_idx": args.eop_token_idx,
+        "bop_token_idx": args.bop_token_idx,
     }
     torch_dtype = torch.float32
     if args.precision == "bf16":
@@ -328,7 +347,7 @@ def main(args):
             local_rank=args.local_rank,
         ),
         config=ds_config,
-        distributed_port=29500,
+        distributed_port=args.distributed_port,
         
     )
 
@@ -471,7 +490,6 @@ def train(
                 input_dict["images"] = input_dict["images"].float()
                 input_dict["images_clip"] = input_dict["images_clip"].float()
 
-            # from IPython import embed; embed()
             
             # first example of cocoval dataset 
             # input_dict['image_paths']
@@ -485,10 +503,13 @@ def train(
                 # ['<image>\nWhat is person in this image? Please output segmentation mask.',
                 # '<image>\nCan you segment the car in this image?',
                 # '<image>\nCan you segment the boat in this image?']]      
-            from IPython import embed; embed()      
+            
+            # print("we are inside train_ds.py")
+            # from IPython import embed; embed()
+            # a=iter(next(train_dataset))      
+            
             output_dict = model(**input_dict)
             
-            # from IPython import embed; embed()
 
             loss = output_dict["loss"]
             ce_loss = output_dict["ce_loss"]

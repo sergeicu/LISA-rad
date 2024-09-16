@@ -284,10 +284,11 @@ conv_vicuna_v1 = Conversation(
     sep2="</s>",
 )
 
-
 conv_bch_v1 = Conversation(
     system="A chat between a radiologist and an artificial intelligence assistant specializing in radiology. "
-    "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines.",
+    "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines."
+    "Use the following format to highlight the type of fracture and its location in your response <p> fracture_description_and_location </p>. " 
+    "If the fracture is not present in the image, you must say that there is no fracture present. ", 
     roles=("USER", "ASSISTANT"),
     version="v1",
     messages=(),
@@ -295,6 +296,20 @@ conv_bch_v1 = Conversation(
     sep_style=SeparatorStyle.TWO,
     sep=" ",
     sep2="</s>",
+)
+
+
+conv_bch_v1_mmtag = Conversation(
+    system="A chat between a radiologist and an artificial intelligence assistant specializing in radiology. "
+    "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines."
+    "The visual content will be provided with the following format: <Image>visual content</Image>.",
+    roles=("USER", "ASSISTANT"),
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.TWO,
+    sep=" ",
+    sep2="</s>",
+    version="v1_mmtag",
 )
 
 

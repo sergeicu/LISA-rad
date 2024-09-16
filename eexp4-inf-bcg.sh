@@ -1,7 +1,18 @@
+# latest model 
+./runs/lisa-7b62ddd33333333343g/ckpt_model/global_step1/bf16_zero_pp_rank_0_mp_rank_00_optim_states.pt.
+
 
 # export weights 
 cd ~/ww/code/llm/experiments/LISA/runs/lisa-7b/ckpt_model
 python zero_to_fp32.py . ../pytorch_model.bin
+
+# merge lora weights -> using the original model on which we trained 
+export HF_HOME=/lab-share/Rad-Afacan-e2/Public/serge/code/huggingface_cache/
+python ../../../merge_lora_weights_and_save_hf_model.py \
+--version "xinlai/LISA-7B-v1" \
+--vision_pretrained ../../../sam_vit_h_4b8939.pth \
+--weight ../pytorch_model.bin \
+--save_path "../"
 
 # merge lora weights -> using the actual model that we were supposed to train on (but we did not merge the weights)
 export HF_HOME=/lab-share/Rad-Afacan-e2/Public/serge/code/huggingface_cache/
@@ -9,16 +20,7 @@ python merge_lora_weights_and_save_hf_model.py \
 --version "liuhaotian/LLaVA-Lightning-7B-delta-v1-1" \
 --vision_pretrained sam_vit_h_4b8939.pth \
 --weight runs/lisa-7b/pytorch_model.bin \
---save_path "./lisa_model"
-
-# merge lora weights -> using the original model on which we trained 
-export HF_HOME=/lab-share/Rad-Afacan-e2/Public/serge/code/huggingface_cache/
-python merge_lora_weights_and_save_hf_model.py \
---version "xinlai/LISA-7B-v1" \
---vision_pretrained sam_vit_h_4b8939.pth \
---weight runs/lisa-7b/pytorch_model.bin \
 --save_path "./lisa_model2"
-
 
 
 

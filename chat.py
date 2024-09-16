@@ -227,6 +227,7 @@ def main(args):
         input_ids = tokenizer_image_token(prompt, tokenizer, return_tensors="pt")
         input_ids = input_ids.unsqueeze(0).cuda()
         
+        # sv407 - added to equalize vocab - may need to be removed  (was not here by default)
         # Define the new tokens
         additional_tokens = {
             "<im_end>": 32002,
@@ -235,6 +236,7 @@ def main(args):
             "[SEG]": 32003
         }
 
+        # sv407 - added to equalize vocab - may need to be removed  (was not here by default)
         # Add the new tokens to the tokenizer
         for token, id in additional_tokens.items():
             tokenizer.add_tokens([token], special_tokens=True) 

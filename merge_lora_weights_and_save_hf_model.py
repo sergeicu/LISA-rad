@@ -68,8 +68,13 @@ def main(args):
         use_fast=False,
     )
     tokenizer.pad_token = tokenizer.unk_token
-    num_added_tokens = tokenizer.add_tokens("[SEG]")
+    # num_added_tokens = tokenizer.add_tokens("[SEG]")  
+    # phrase_tokens = ['<p>', '</p>']
+    # segmentation_tokens = ['[SEG]']
+    # special_tokens = segmentation_tokens + phrase_tokens
+    # num_added_tokens = tokenizer.add_tokens(phrase_tokens, special_tokens=True) # adding tokens to align vocab to phrase grounding
     args.seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]
+    from IPython import embed; embed()
 
     if args.use_mm_start_end:
         tokenizer.add_tokens(

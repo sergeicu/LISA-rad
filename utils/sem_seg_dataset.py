@@ -116,7 +116,7 @@ def extract_json(f,grounded=True):
         # a = a.replace(gp, "[OBJ]" + gp+ "[OBJ]")
         
         # OPTION 2: append 
-        a = a + "[OBJ]" + gp+ "[OBJ]"
+        a = "<p>" + gp+ "</p> " + a 
     
 
     
@@ -221,7 +221,7 @@ class SemSegDataset(torch.utils.data.Dataset):
         num_classes_per_sample: int = 3,
         exclude_val=False,
         sem_seg_data="ade20k||cocostuff||partimagenet||pascal_part||paco_lvis||mapillary||bchwrist",
-        grounded=False,
+        grounded=True,
         deterministic=False,
         shorten=False,
     ):
@@ -355,11 +355,15 @@ class SemSegDataset(torch.utils.data.Dataset):
                 label[label == 0] = 255
                 label -= 1
                 label[label == 254] = 255
-            elif ds == "cocostuff":
+            elif ds == "cocostuff"      :
                 for c, i in self.cocostuff_class2index.items():
                     if "-" in c:
                         label[label == i] = 255
             elif ds == "bchwrist":
+                # print("CHECK IF this is oke here - save the image")
+                # from IPython import embed; embed()
+                # print("CHECK IF this is oke here - save the image")
+                
                 for c, i in self.bchwrist_class2index.items():
                     if "-" in c:
                         label[label == i] = 255                        
@@ -394,6 +398,7 @@ class SemSegDataset(torch.utils.data.Dataset):
             
             # get object 
             obj_template = random.choice(self.obj_list) if not self.deterministic else self.obj_list[0]
+            # obj_template = obj_template + "Use the following format to highlight the description of the fracture type and its location in the image <p> fracture_description </p>"
             
 
             assert len(text.split("||")) == 1
@@ -401,11 +406,14 @@ class SemSegDataset(torch.utils.data.Dataset):
             # NEW QUESTIONS ANSWERS
             if self.grounded: 
                 
+                # print("we want to make sure that we give the grounding labels here")
+                # from IPython import embed; embed() 
                 q = DEFAULT_IMAGE_TOKEN + "\n" + q_ + ' ' + obj_template 
                 questions.append(q.format(class_name=text.lower()))   # should be:  DEFAULT_IMAGE_TOKEN + "\n" + <q from llava> + "Pinpoint its location in the report.",
 
                 answer_template = random.choice(self.answer_list) if not self.deterministic else self.answer_list[0]
-                answers.append(answer_template + a_ ) # should be:  
+                # answers.append(answer_template + ' ' + a_ ) # should be:  
+                answers.append("[SEG] " + a_ ) # should be:  
                 
                 # print(f"questions are:\n{questions}")
                 # print(f"answers are:\n{answers}")

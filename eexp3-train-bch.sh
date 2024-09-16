@@ -2,6 +2,20 @@
 https://chatgpt.com/share/89e40b5f-e94c-4bd4-af0b-b6fbed721ca5
 
 
+# check current slurm jobs - how much is left 
+squeue --user=$USER --format="%.18i %.9P %.12j %.8u %.8T %.10M %.9l %.6D %R"
+             JOBID PARTITION         NAME     USER    STATE       TIME TIME_LIMI  NODES NODELIST(REASON)
+           2716200   bch-gpu  interactive ch215616  RUNNING 2-02:18:07 8-08:00:00      1 gpu-10-0
+           2716201   bch-gpu  interactive ch215616  RUNNING 2-02:14:28 8-08:00:00      1 gpu-10-2
+           2716205   bch-gpu  interactive ch215616  RUNNING 2-02:14:28 8-08:00:00      1 gpu-10-3
+           2716206   bch-gpu  interactive ch215616  RUNNING 1-23:25:51 8-08:00:00      1 gpu-10-3
+           2716194 bch-gpu-p  interactive ch215616  PENDING       0:00 8-08:00:00      1 (Resources)
+           2716197 bch-gpu-p  interactive ch215616  PENDING       0:00 8-08:00:00      1 (Priority)
+           2716191 bch-gpu-p  interactive ch215616  RUNNING    2:35:03 8-08:00:00      1 gpu-10-1
+           2716193   crl-gpu  interactive ch215616  PENDING       0:00 8-08:00:00      1 (Resources)
+           2716203   crl-gpu  interactive ch215616  RUNNING 4-02:03:00 8-08:00:00      1 gpu-5-1
+
+
 # mount 
 mount -t nfs -o noauto,_netdev,hard,comment=systemd.automount,nofail rc-fs-nfs.tch.harvard.edu:/Rad-Afacan-e2 /lab-share/Rad-Afacan-e2
 
@@ -18,7 +32,7 @@ lisa3 -> reproducing glamm_e2
 srun -A crl -p bch-gpu-pe -t 1:00:00 --gres=gpu:NVIDIA_A40:1  --pty /bin/bash 
 cd /home/ch215616/ww/code/llm/experiments/LISA
 # conda activate glamm_e2
-conda activate lisa2
+conda activate lisa
 lisa3 -> tries to copy the exact environment that glamm_e2 is 
 
 
@@ -40,8 +54,11 @@ python train_ds.py \
   --sample_rates="1" \
   --no_eval \
   --batch_size=1 \
-  --exp_name="lisa-7b62334g"   
-
+  --grounded \
+  --exp_name="lisa-7b62ddd333333333493g" \
+  --distributed_port=29500 \
+  --epochs=1 \
+  --steps_per_epoch=1
 
 
 # tried installing 

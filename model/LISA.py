@@ -126,23 +126,22 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
         config,
         **kwargs,
     ):
-        # from IPython import embed; embed()
+        # sv407 - put the following 4 lines outside of the if statement... 
+        config.mm_use_im_start_end = kwargs.pop("use_mm_start_end", True)
+        self.ce_loss_weight = kwargs.pop("ce_loss_weight", None)
+        self.dice_loss_weight = kwargs.pop("dice_loss_weight", None)
+        self.bce_loss_weight = kwargs.pop("bce_loss_weight", None)        
         if not hasattr(config, "train_mask_decoder"):
-            config.mm_use_im_start_end = kwargs.pop("use_mm_start_end", True)
+            
             config.mm_vision_tower = kwargs.get(
                 "vision_tower", "openai/clip-vit-large-patch14"
             )
-            self.ce_loss_weight = kwargs.pop("ce_loss_weight", None)
-            self.dice_loss_weight = kwargs.pop("dice_loss_weight", None)
-            self.bce_loss_weight = kwargs.pop("bce_loss_weight", None)
         else:
             config.mm_vision_tower = config.vision_tower
             
-            # sv407 - added 
-            config.mm_use_im_start_end = kwargs.pop("use_mm_start_end", True)
-            self.ce_loss_weight = kwargs.pop("ce_loss_weight", None)
-            self.dice_loss_weight = kwargs.pop("dice_loss_weight", None)
-            self.bce_loss_weight = kwargs.pop("bce_loss_weight", None)
+            
+            
+
             
         self.seg_token_idx = kwargs.pop("seg_token_idx")
 
@@ -187,6 +186,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
         inference: bool = False,
         **kwargs,
     ):
+        
         image_embeddings = self.get_visual_embs(images)
         batch_size = image_embeddings.shape[0]
         assert batch_size == len(offset) - 1
@@ -257,9 +257,21 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
         hidden_states.append(self.model.text_hidden_fcs[0](output_hidden_states[-1]))
 
         last_hidden_state = torch.stack(hidden_states, dim=-1).sum(dim=-1)
-        pred_embeddings = last_hidden_state[seg_token_mask]
-        seg_token_counts = seg_token_mask.int().sum(-1)  # [bs, ]
-
+        # from IPython import embed; embed()
+        pred_embeddings = last_hidden_state[seg_token_mask] # selects only the elements where token corresponds to [SEG] 
+        # -> if only one [SEG]
+        # In [51]: seg_token_mask.nonzero()
+        # Out[51]: tensor([[  0, 401]], device='cuda:0') -> one element in input array under id number 401 corresponds to [SEG]
+        
+        # In [52]: last_hidden_state.size()
+        # Out[52]: torch.Size([1, 451, 256]) -> there 451 input tokens in total ... and 401st is the one with [SEG]        
+        
+        # In [53]: pred_embeddings.size()
+        # Out[53]: torch.Size([1, 256]) -> we only pick hidden states that correspond to [seg] tokens - so in this case just one 
+        # dont forget the hidden states has 256 dimensions here 
+        
+        seg_token_counts = seg_token_mask.int().sum(-1)  # [bs, ]     # this tells us how many correspond to [SEG] token 
+        
         seg_token_offset = seg_token_counts.cumsum(-1)
         seg_token_offset = torch.cat(
             [torch.zeros(1).long().cuda(), seg_token_offset], dim=0
@@ -299,9 +311,13 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
                 original_size=label_list[i].shape,
             )
             pred_masks.append(pred_mask[:, 0])
+            
+        # THIS IS WHERE NUMBER OF MaSKS (bounding boxes / segmentations) are defined -> pred_masks 
+        # if [SEG] only one - len(pred_masks) is 1. 
 
         model_output = output
-        gt_masks = masks_list
+        gt_masks = masks_list # GRouND TRUTH MASKS 
+        # here is where we need to turn ground_truth masks into bounding boxes (i guess) and so that the loss can be changed tooo
 
         if inference:
             return {

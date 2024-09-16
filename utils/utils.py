@@ -6,29 +6,29 @@ import torch.distributed as dist
 
 IGNORE_INDEX = -100
 IMAGE_TOKEN_INDEX = -200
-DEFAULT_IMAGE_TOKEN = "<image>"
-DEFAULT_IM_START_TOKEN = "<im_start>"
-DEFAULT_IM_END_TOKEN = "<im_end>"
+DEFAULT_IMAGE_TOKEN = "<Image>"
+DEFAULT_IM_START_TOKEN = "<Image>"
+DEFAULT_IM_END_TOKEN = "</Image>"
 
 DEFAULT_IMAGE_PATCH_TOKEN = "<im_patch>"
 
 
-DEFAULT_OBJ_TOKEN = "<obj>"
-DEFAULT_OBJ_START_TOKEN = "<obj_start>"
-DEFAULT_OBJ_END_TOKEN = "<obj_end>"
+DEFAULT_OBJ_TOKEN = "<p>"
+DEFAULT_OBJ_START_TOKEN = "<p>"
+DEFAULT_OBJ_END_TOKEN = "</p>"
 
 
 SHORT_OBJ_LIST = [
-    "Pinpoint its location in the report.",
-    "Specify where it is mentioned in the report.",
-    "Indicate the area described in the report.",
-    "Highlight the location within the report.",
-    "Mark the position as described in the report.",
-    "Locate the specific mention in the report.",
-    "Show where it is detailed in the report.",
-    "Outline its location in the report.",
-    "Find where it's described in the report.",
-    "Identify the section that describes its location in the report."
+    "Pinpoint its location in your report.",
+    "Specify where it is mentioned in your report.",
+    "Indicate the area described in your report.",
+    "Highlight the location within your report.",
+    "Mark the position as described in your report.",
+    "Locate the specific mention of it in your report.",
+    "Show where it is detailed in your report.",
+    "Outline its location in your report.",
+    "Find where it's described in your report.",
+    "Identify the section that describes its location in your report."
 ]
 
 

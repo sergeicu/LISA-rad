@@ -71,6 +71,17 @@ class MaskDecoder(nn.Module):
         self.iou_prediction_head = MLP(
             transformer_dim, iou_head_hidden_dim, self.num_mask_tokens, iou_head_depth
         )
+        # print("i am inside masked decoder 1 - init of MaskDecoder ")
+        # from IPython import embed; embed()
+        
+        # In [1]: self.iou_prediction_head
+        # Out[1]: 
+        # MLP(
+        # (layers): ModuleList(
+        #     (0-1): 2 x Linear(in_features=256, out_features=256, bias=True)
+        #     (2): Linear(in_features=256, out_features=4, bias=True)
+        # )
+        # )        
 
     def forward(
         self,
@@ -109,6 +120,11 @@ class MaskDecoder(nn.Module):
             mask_slice = slice(0, 1)
         masks = masks[:, mask_slice, :, :]
         iou_pred = iou_pred[:, mask_slice]
+        
+        # this debug is kind of useless because all action happens inside predict_masks
+        # print("i am inside masked decoder 2 - forward of Mask Decoder")
+        # from IPython import embed; embed()
+        
 
         # Prepare output
         return masks, iou_pred
@@ -160,6 +176,10 @@ class MaskDecoder(nn.Module):
 
         # Generate mask quality predictions
         iou_pred = self.iou_prediction_head(iou_token_out)
+        
+        # print("i am inside masked decoder 3 - predict_masks of Mask Decoder ")
+        # from IPython import embed; embed()
+        
 
         return masks, iou_pred
 
@@ -182,6 +202,16 @@ class MLP(nn.Module):
             nn.Linear(n, k) for n, k in zip([input_dim] + h, h + [output_dim])
         )
         self.sigmoid_output = sigmoid_output
+        
+        # print("i am inside masked decoder 4")
+        # from IPython import embed; embed()
+        
+        # input_dim, hidden_dim, output_dim, num_layers, sigmoid_output
+        # Out[1]: (256, 256, 32, 3, False) -> 3 or 4 times 
+        
+        # Out[1]: (256, 256, 4, 3, False) -> last one -> before we get to inside masked decoder 1
+        
+        
 
     def forward(self, x):
         for i, layer in enumerate(self.layers):
