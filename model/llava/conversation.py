@@ -299,6 +299,34 @@ conv_bch_v1 = Conversation(
 )
 
 
+conv_bch_v1b = Conversation(
+    system="A chat between a radiologist and an artificial intelligence assistant specializing in radiology. "
+    "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines."
+    "Use the following format to highlight the type of fracture and its location in your response <p> fracture_description_and_location </p>. ", 
+    roles=("USER", "ASSISTANT"),
+    version="v1",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.TWO,
+    sep=" ",
+    sep2="</s>",
+)
+
+conv_bch_v1c = Conversation(
+    system="A chat between a radiologist and an artificial intelligence assistant specializing in radiology. "
+    "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines."
+    "Use the following format to highlight the type of fracture and its location in your response <p> grounding </p>. "
+    "", 
+    roles=("USER", "ASSISTANT"),
+    version="v1",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.TWO,
+    sep=" ",
+    sep2="</s>",
+)
+
+
 conv_bch_v1_mmtag = Conversation(
     system="A chat between a radiologist and an artificial intelligence assistant specializing in radiology. "
     "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines."

@@ -111,7 +111,6 @@ def parse_args(args):
         "--conv_type",
         default="llava_v1",
         type=str,
-        choices=["llava_v1", "llava_llama_2","conv_bch_v1"],
     )
     return parser.parse_args(args)
 
