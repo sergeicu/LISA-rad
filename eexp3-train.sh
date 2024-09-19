@@ -18,7 +18,7 @@ salloc -A bch -p bch-gpu -t 5:00:00 --nodes=1 --ntasks=1 --cpus-per-task=16 --me
 salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=4 --cpus-per-task=32 --mem=256G --gres=gpu:NVIDIA_A100:4 
 salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=4 --cpus-per-task=32 --mem=256G --gres=gpu:NVIDIA_A40:4 
 salloc -A crl -p crl-gpu -t 200:00:00 --nodes=1 --ntasks=4 --cpus-per-task=32 --mem=256G --qos=crl --gres=gpu:NVIDIA_A40:4 
-
+# salloc -A crl -p crl-gpu -t 200:00:00 --nodes=1 --ntasks=4 --cpus-per-node=96 --mem=256G --qos=crl --gres=gpu:NVIDIA_A40:4
 
 
 # 2 GPU - A100,A40 x crl & bch-gpu-pe
@@ -107,7 +107,20 @@ srun -A bch -p bch-gpu -t 200:00:00 --gres=gpu:1 --pty /bin/bash -c "while true;
 # misc slurm commands 
 
 
---ntasks=1 --cpus-per-task=32 --mem=64G
+# show remaining jobs 
+squeue --user $USER --sort=-t,e,P -o "%.18i %.2t %.12M %.12L %.6C %.8m %.9P %.12R" | (sed -u 1q; sort -k5 -r)
+          # squeue --user $USER --sort=-t,e,P -o "%.18i %.20j %.9u %.2t %.12M %.12L %.6C %.8m %.8G %.9P" | (sed -u 1q; sort -k5 -r)
+
+# how many jobs 
+(
+  squeue --user $USER --sort=-t,e,P -o "%.18i %.20j %.9u %.2t %.12M %.12L %.6C %.8m %.8G %.9P" | sed -u 1q
+  squeue --user $USER --sort=-t,e,P -o "%.18i %.20j %.9u %.2t %.12M %.12L %.6C %.8m %.8G %.9P" | tail -n +2 | sort -k5 -r | 
+    while IFS= read -r line; do
+      partition=$(echo "$line" | awk '{print $10}')
+      count=$(squeue --user $USER --partition=$partition --state=RUNNING | wc -l)
+      printf "%s %5d\n" "$line" "$count"
+    done
+) | column -t
 
 
 srun --pty tmux new-session -d 'watch -n 60 date'

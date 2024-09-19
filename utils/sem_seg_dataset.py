@@ -88,16 +88,110 @@ def init_cocostuff(base_image_dir):
     print("cocostuff: ", len(cocostuff_images))
     return cocostuff_classes, cocostuff_images, cocostuff_labels
 
-def extract_json(f,grounded=True):
+
+def extract_json(f,grounded=True, full_report_in=False, full_report_out=False):
     
     with open(f) as file:
         jk = json.load(file)
+
+    ################################################
+    # CLEAN REPORT
+    ################################################    
     
-    q=jk['formatted_response']['question']
-    a=jk['formatted_response']['answer']
-    gp=jk['formatted_response']['grounding_phrase']
+    # report 
+    report=jk['input_file_contents']    
+        
+    # flags for cleaning 
+    clean_report=True 
+    remove_date=True
+    remove_radiologist=True
+    remove_age=True
+    remove_hospital=True
+    
+    
+    if clean_report:
+        # Remove DICOM-like tags (e.g., "(0040,a160) UT [") at the start of the report
+        report = re.sub(r'\(\d+,\w+\) UT \[', '', report, flags=re.IGNORECASE)
+
+        # Replace multiple asterisks with a single asterisk
+        report = re.sub(r'\*{2,}', '*', report)
+
+        # Replace multiple spaces with a single space
+        report = re.sub(r' {2,}', ' ', report)
+
+        # Remove newlines, "TextValue" strings, and hash symbols
+        report = report.replace("\n", " ").replace("TextValue", "").replace("#", "")
+
+        # Remove the "*FINAL REPORT*" header
+        report = report.replace("*FINAL REPORT* ", "")
+
+        # Remove leading spaces at the start of each line (multi-line mode)
+        report = re.sub(r'(?m)^ +', '', report)
+
+        # Remove the ending pattern like "]  number, number" (often used in DICOM reports)
+        report = re.sub(r'\]\s*\d+\s*,\s*\d+\s*$', '', report)
+        
+        
+    if remove_date:
+        date_patterns = [
+            r'\d{1,2}/\d{1,2}/\d{2,4}',
+            r'\d{1,2}-\d{1,2}-\d{2,4}',
+            r'\d{4}-\d{2}-\d{2}',
+            r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}\b'
+        ]
+        for pattern in date_patterns:
+            report = re.sub(pattern, '[DATE]', report, flags=re.IGNORECASE)
+
+    if remove_radiologist:
+        radiologist_pattern = r'((?:Fellow|Resident|Fellow[\s-]?Resident|Resident[\s-]?Fellow)[\s:]|Attending)\s*Radiologist:\s*((?:[A-Za-z]+[-\s]?){1,3}[A-Za-z]+)'
+        report = re.sub(radiologist_pattern, r'\1 Radiologist: [NAME]', report, flags=re.IGNORECASE)
+        
+        # Updated pattern to catch "Dr. [somename]" case-insensitively
+        dr_pattern = r'\bDr\.?\s+(?:[A-Za-z]+\s?){1,3}'
+        report = re.sub(dr_pattern, 'Dr. [NAME]', report, flags=re.IGNORECASE)
+
+    if remove_age:
+        age_patterns = [
+            r'\b\d+\s*(?:y\.?o\.?|years?\s*old)\b',
+            r'\b\d+-years?-old\b',
+            r'\b\d+\s*years?\b',
+            r'\bage[d\s]+\d+\b',
+            r'\b\d+-year-old\b',
+            r'\b\d+(?:-|\s)?months?(?:-|\s)?old\b'
+        ]
+        for pattern in age_patterns:
+            report = re.sub(pattern, '[AGE]', report, flags=re.IGNORECASE)
+
+    if remove_hospital:
+        hospital_patterns = [
+            r'\bboston\s+children(?:\'s)?\s+hospital\b',
+            r'\bboston\s+children(?:\'s)?\b',
+            r'\bmount\s+auburn\s+hospital\b'
+        ]
+        for pattern in hospital_patterns:
+            report = re.sub(pattern, '[HOSPITAL]', report, flags=re.IGNORECASE)
+            
+    # final cleanup
+    # Replace multiple spaces with a single space
+    report = re.sub(r' {2,}', ' ', report)            
+            
+    ################################################
+    # QUESTION & ANSWER 
+    ################################################    
+    if not full_report_in: 
+        q=jk['formatted_response']['question']
+    else: 
+        q1=jk['formatted_response']['question']
+        q = q1 + " Here is the medical report. " + report 
+
+
+    if not full_report_out:
+        a=jk['formatted_response']['answer']
+    else: 
+        a = report
     
     if grounded: 
+        gp=jk['formatted_response']['grounding_phrase']
         
         # # OPTION 1: replace 
         # if not gp in a:
@@ -133,11 +227,13 @@ def extract_json(f,grounded=True):
     # )    
     # https://www.reddit.com/r/StableDiffusion/comments/zc65l4/rare_tokens_for_dreambooth_training_stable/
     
+    # print(report)
+    # from IPython import embed; embed()
     
     return q,a
     
 
-def init_bchwrist(base_image_dir):
+def init_bchwrist(base_image_dir, grounded=True, full_report_in=False,full_report_out=False):
     bchwrist_classes = []
     with open("utils/bchwrist_classes.txt") as f:
         for line in f.readlines()[0:]:
@@ -157,12 +253,16 @@ def init_bchwrist(base_image_dir):
         base_image_dir + '/bchwrist_reports/train/'+x for x in bchwrist_reports
     ]        
     
-    
-    qa = [ extract_json(f) for f in bchwrist_reports]
+    qa = []
+    for f in bchwrist_reports: 
+        qa_i = extract_json(f,grounded, full_report_in, full_report_out)
+        qa.append(qa_i)
+    # qa = [ extract_json(f) for f in bchwrist_reports]
     
 
     print("bchwrist: ", len(bchwrist_images))
     return bchwrist_classes, bchwrist_images, bchwrist_labels, qa
+
 
 
 def init_paco_lvis(base_image_dir):
@@ -225,6 +325,8 @@ class SemSegDataset(torch.utils.data.Dataset):
         grounded=True,
         deterministic=False,
         shorten=False,
+        full_report_in=False,
+        full_report_out=False,
     ):
 
         # Only initialize CLIPImageProcessor if vision_tower is not None
@@ -235,6 +337,9 @@ class SemSegDataset(torch.utils.data.Dataset):
             self.clip_image_processor = None
             
         self.conv_type = conv_type
+        
+        self.full_report_in=full_report_in
+        self.full_report_out=full_report_out
 
         self.shorten = shorten
         self.deterministic=deterministic
@@ -259,7 +364,7 @@ class SemSegDataset(torch.utils.data.Dataset):
         self.sem_seg_datas = sem_seg_data.split("||")
         for ds in self.sem_seg_datas:
             if 'bchwrist' in ds:
-                classes, images, labels,qa = eval("init_{}".format(ds))(base_image_dir)
+                classes, images, labels,qa = eval("init_{}".format(ds))(base_image_dir, grounded, full_report_in, full_report_out)
                 if self.shorten:
                     classes = classes[:4]
                     images = images[:4]

@@ -101,6 +101,9 @@ def parse_args(args):
     parser.add_argument("--use_mm_start_end", action="store_true", default=True)
     parser.add_argument("--auto_resume", action="store_true", default=True)
     
+    parser.add_argument("--full_report_in", action="store_true")
+    parser.add_argument("--full_report_out", action="store_true")
+    
     
     
     
@@ -278,6 +281,8 @@ def main(args):
         grounded=args.grounded,
         deterministic=args.deterministic, 
         shorten=args.shorten, 
+        full_report_in=args.full_report_in,
+        full_report_out=args.full_report_out,
         
     )
 

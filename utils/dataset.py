@@ -190,8 +190,13 @@ class HybridDataset(torch.utils.data.Dataset):
         grounded=False, 
         deterministic=False,
         shorten=False,
+        full_report_in=False,
+        full_report_out=False,
         
     ):
+        self.full_report_in = full_report_in
+        self.full_report_out = full_report_out
+        
         self.exclude_val = exclude_val
         self.dataset = dataset
         self.samples_per_epoch = samples_per_epoch
@@ -225,6 +230,8 @@ class HybridDataset(torch.utils.data.Dataset):
                         grounded,
                         deterministic,
                         shorten,
+                        full_report_in,
+                        full_report_out,
                     )
                 )
             elif dataset == "refer_seg":
