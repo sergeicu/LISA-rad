@@ -315,8 +315,7 @@ conv_bch_v1b = Conversation(
 conv_bch_v1c = Conversation(
     system="A chat between a radiologist and an artificial intelligence assistant specializing in radiology. "
     "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines."
-    "Use the following format to highlight the type of fracture and its location in your response <p> grounding </p>. "
-    "", 
+    "The assistant must give a grounding phrase, which indicates the medical condition succinctly in a few words together with its location. The grounding phrase must be highlighted in the following format <p>grounding_phrase</p>", 
     roles=("USER", "ASSISTANT"),
     version="v1",
     messages=(),
@@ -325,6 +324,23 @@ conv_bch_v1c = Conversation(
     sep=" ",
     sep2="</s>",
 )
+
+
+
+conv_bch_v1d = Conversation(
+    system="A chat between a radiologist and an artificial intelligence assistant specializing in radiology. "
+    "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines."
+    "The assistant must indicate a grounding phrase, which indicates the medical condition succinctly in a few words together with its location. The grounding phrase must be highlighted in the following format <p>grounding_phrase</p>"
+    "Use the following radiological guidelines for identifying wrist fractures: Examine the radius, ulna, carpal bones (scaphoid, lunate, triquetrum, trapezoid, trapezium, pisiform, capitate), and metacarpals. Determine if there is a fracture, its acuity (acute or healing), and whether it is displaced or angulated. Pay special attention to the distal metadiaphyses, metaphysis, growth plate, and styloid. Identify the type of fracture, such as Salter-Harris fractures (four types), buckle fractures, etc. Note any signs of osteoporosis of disuse. Observe whether there is an overlying cast visible in the x-ray.", 
+    roles=("USER", "ASSISTANT"),
+    version="v1",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.TWO,
+    sep=" ",
+    sep2="</s>",
+)
+
 
 
 conv_bch_v1_mmtag = Conversation(
@@ -451,6 +467,8 @@ conv_templates = {
     "mpt": conv_mpt,
     "conv_bch_v1": conv_bch_v1,
     "conv_bch_v1b": conv_bch_v1b,
+    "conv_bch_v1c": conv_bch_v1c,
+    "conv_bch_v1d": conv_bch_v1d,
 }
 
 
