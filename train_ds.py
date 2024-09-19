@@ -14,7 +14,7 @@ from peft import LoraConfig, get_peft_model
 from torch.utils.tensorboard import SummaryWriter
 
 from model.LISA import LISAForCausalLM
-from model.llava import conversation as conversation_lib
+# from model.llava import conversation as conversation_lib
 from utils.dataset import HybridDataset, ValDataset, collate_fn
 from utils.utils import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
                          AverageMeter, ProgressMeter, Summary, dict_to_cuda,
@@ -124,9 +124,7 @@ def main(args):
     else:
         writer = None
         
-    # print("PLEASE CHECK THAT GROUNDING IS ON")
-    # from IPython import embed; embed()
-        
+
 
     ####################################
     # Prepare tokenizer 
@@ -197,9 +195,9 @@ def main(args):
     for p in model.get_model().mm_projector.parameters():
         p.requires_grad = False
 
-    conversation_lib.default_conversation = conversation_lib.conv_templates[
-        args.conv_type
-    ]
+    # # conversation_lib.default_conversation = conversation_lib.conv_templates[
+    # #     args.conv_type
+    # ]
 
     lora_r = args.lora_r
     if lora_r > 0:
@@ -261,6 +259,7 @@ def main(args):
         args.dataset_dir,
         tokenizer,
         args.vision_tower,
+        conv_type=args.conv_type,
         samples_per_epoch=args.batch_size
         * args.grad_accumulation_steps
         * args.steps_per_epoch

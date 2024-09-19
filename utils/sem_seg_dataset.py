@@ -215,6 +215,7 @@ class SemSegDataset(torch.utils.data.Dataset):
         base_image_dir,
         tokenizer,
         vision_tower,
+        conv_type,
         samples_per_epoch=500 * 8 * 2 * 10,
         precision: str = "fp32",
         image_size: int = 224,
@@ -232,6 +233,8 @@ class SemSegDataset(torch.utils.data.Dataset):
             self.clip_image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
         else:
             self.clip_image_processor = None
+            
+        self.conv_type = conv_type
 
         self.shorten = shorten
         self.deterministic=deterministic
@@ -369,9 +372,6 @@ class SemSegDataset(torch.utils.data.Dataset):
                         if "-" in c:
                             label[label == i] = 255
                 elif ds == "bchwrist":
-                    # print("CHECK IF this is oke here - save the image")
-                    # from IPython import embed; embed()
-                    # print("CHECK IF this is oke here - save the image")
                     
                     for c, i in self.bchwrist_class2index.items():
                         if "-" in c:
@@ -414,9 +414,7 @@ class SemSegDataset(torch.utils.data.Dataset):
             
             # NEW QUESTIONS ANSWERS
             if self.grounded: 
-                
-                # print("we want to make sure that we give the grounding labels here")
-                # from IPython import embed; embed() 
+
                 q = DEFAULT_IMAGE_TOKEN + "\n" + q_ + ' ' + obj_template 
                 questions.append(q.format(class_name=text.lower()))   # should be:  DEFAULT_IMAGE_TOKEN + "\n" + <q from llava> + "Pinpoint its location in the report.",
 
@@ -446,10 +444,10 @@ class SemSegDataset(torch.utils.data.Dataset):
             class_ids.append(class_id)
 
         conversations = []
-        if self.grounded:
-            conv = conversation_lib.conv_bch_v1.copy()
-        else:
-            conv = conversation_lib.default_conversation.copy()
+
+        conv = conversation_lib.conv_templates[self.conv_type].copy()
+        # from IPython import embed; embed()
+        # conv = conversation_lib.default_conversation.copy()
 
         i = 0
         while i < len(questions):

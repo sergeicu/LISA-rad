@@ -85,13 +85,16 @@ def collate_fn(
     )
     attention_masks = input_ids.ne(tokenizer.pad_token_id)
 
-    conv = conversation_lib.default_conversation.copy()
+    # conv = conversation_lib.default_conversation.copy()
+    conv = conversation_lib.conv_templates[conv_type].copy()
+    
     targets = input_ids.clone()
 
-    if conv_type == "llava_v1":
-        sep = conv.sep + conv.roles[1] + ": "
-    else:
-        sep = "[/INST] "
+    sep = conv.sep + conv.roles[1] + ": "
+    # if conv_type == "llava_v1":
+    #     sep = conv.sep + conv.roles[1] + ": "
+    # else:
+    #     sep = "[/INST] "
     for conversation, target in zip(conversation_list, targets):
         total_len = int(target.ne(tokenizer.pad_token_id).sum())
 
@@ -171,6 +174,7 @@ class HybridDataset(torch.utils.data.Dataset):
         base_image_dir,
         tokenizer,
         vision_tower,
+        conv_type,
         samples_per_epoch=500 * 8 * 2 * 10,
         precision: str = "fp32",
         image_size: int = 224,
@@ -185,7 +189,8 @@ class HybridDataset(torch.utils.data.Dataset):
         explanatory=0.1,
         grounded=False, 
         deterministic=False,
-        shorten=False
+        shorten=False,
+        
     ):
         self.exclude_val = exclude_val
         self.dataset = dataset
@@ -210,6 +215,7 @@ class HybridDataset(torch.utils.data.Dataset):
                         base_image_dir,
                         tokenizer,
                         vision_tower,
+                        conv_type,
                         samples_per_epoch,
                         precision,
                         image_size,
@@ -392,6 +398,7 @@ class ValDataset(torch.utils.data.Dataset):
             sampled_sents = [sampled_sents[0]]
 
         conversations = []
+        sys.exit("Hello Serge: YOU MUST SEE HOW conv is initialized above in this file and then make sure this class ValDataset receives conv_type variable!!! ")
         conv = conversation_lib.default_conversation.copy()
         i = 0
         while i < len(sampled_sents):

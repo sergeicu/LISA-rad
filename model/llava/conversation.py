@@ -450,6 +450,7 @@ conv_templates = {
     "llava_llama_2": conv_llava_llama_2,
     "mpt": conv_mpt,
     "conv_bch_v1": conv_bch_v1,
+    "conv_bch_v1b": conv_bch_v1b,
 }
 
 
