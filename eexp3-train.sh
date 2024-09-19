@@ -1,10 +1,50 @@
 
-srun --pty tmux new-session -d 'watch -n 60 date'
-srun -A bch -p bch-compute --pty tmux new-session -d 'watch -n 60 date'
-
-srun --jobid=2716185 --pty /bin/bash
 
 ########################################################
+# TESTING - 5hrs 
+
+# 1 GPU - A100,A40 x crl & bch-gpu-pe
+salloc -A bch -p bch-gpu-pe -t 5:00:00 --nodes=1 --ntasks=1 --cpus-per-task=16 --mem=64G --gres=gpu:NVIDIA_A100:1 
+salloc -A bch -p bch-gpu-pe -t 5:00:00 --nodes=1 --ntasks=1 --cpus-per-task=16 --mem=64G --gres=gpu:NVIDIA_A40:1 
+salloc -A crl -p crl-gpu -t 5:00:00 --nodes=1 --ntasks=1 --cpus-per-task=16 --mem=64G --qos=crl --gres=gpu:NVIDIA_A40:1 
+
+# bch-gpu (not A100 or A40)
+salloc -A bch -p bch-gpu -t 5:00:00 --nodes=1 --ntasks=1 --cpus-per-task=16 --mem=64G --gres=gpu:1 
+
+########################################################
+# TESTING - 200hrs 
+
+# 4 GPU - A100,A40 x crl & bch-gpu-pe
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=4 --cpus-per-task=32 --mem=256G --gres=gpu:NVIDIA_A100:4 
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=4 --cpus-per-task=32 --mem=256G --gres=gpu:NVIDIA_A40:4 
+salloc -A crl -p crl-gpu -t 200:00:00 --nodes=1 --ntasks=4 --cpus-per-task=32 --mem=256G --qos=crl --gres=gpu:NVIDIA_A40:4 
+
+
+
+# 2 GPU - A100,A40 x crl & bch-gpu-pe
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=2 --cpus-per-task=32 --mem=128G --gres=gpu:NVIDIA_A100:2
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=2 --cpus-per-task=32 --mem=128G --gres=gpu:NVIDIA_A40:2 
+salloc -A crl -p crl-gpu -t 200:00:00 --nodes=1 --ntasks=2 --cpus-per-task=32 --mem=128G --qos=crl --gres=gpu:NVIDIA_A40:2 
+
+
+# 1 GPU - A100,A40 x crl & bch-gpu-pe
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=64G --gres=gpu:NVIDIA_A100:1 
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=64G --gres=gpu:NVIDIA_A40:1 
+salloc -A crl -p crl-gpu -t 200:00:00 --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=64G --qos=crl --gres=gpu:NVIDIA_A40:1 
+
+# 1 GPU - A100,A40 x crl & bch-gpu-pe
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=64G --gres=gpu:NVIDIA_A100:1 
+salloc -A bch -p bch-gpu-pe -t 200:00:00 --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=64G --gres=gpu:NVIDIA_A40:1 
+salloc -A crl -p crl-gpu -t 200:00:00 --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=64G --qos=crl --gres=gpu:NVIDIA_A40:1 
+
+# bch-gpu (not A100 or A40)
+salloc -A bch -p bch-gpu -t 200:00:00 --nodes=1 --ntasks=4 --cpus-per-task=32 --mem=256G --gres=gpu:4 
+salloc -A bch -p bch-gpu -t 200:00:00 --nodes=1 --ntasks=2 --cpus-per-task=32 --mem=128G --gres=gpu:2 
+salloc -A bch -p bch-gpu -t 200:00:00 --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=64G --gres=gpu:1 
+
+
+########################################################
+# TESTING - 200hrs (BAD MEMORY)
 
 # 4 GPU - A100,A40 x crl & bch-gpu-pe
 salloc -A bch -p bch-gpu-pe -t 200:00:00 --gres=gpu:NVIDIA_A100:4 #--pty /bin/bash -c "while true; do sleep 60; done"
@@ -33,6 +73,7 @@ salloc -A bch -p bch-gpu -t 200:00:00 --gres=gpu:1 #--pty /bin/bash -c "while tr
 
 
 ########################################################
+# SRUN - do not use it unless you want to lose it. 
 
 srun -A bch -p bch-compute -t 2:00:00 --pty /bin/bash -c "top" 
 
@@ -63,6 +104,19 @@ srun -A bch -p bch-gpu -t 200:00:00 --gres=gpu:1 --pty /bin/bash -c "while true;
 
 
 ########################################################
+# misc slurm commands 
+
+
+--ntasks=1 --cpus-per-task=32 --mem=64G
+
+
+srun --pty tmux new-session -d 'watch -n 60 date'
+srun -A bch -p bch-compute --pty tmux new-session -d 'watch -n 60 date'
+
+srun --jobid=2716185 --pty /bin/bash
+
+salloc  --time=01:00:00
+
 
 
 
@@ -118,6 +172,13 @@ squeue -o %b | grep gpu
 # show jobs 
 squeue -U $USER
 scontrol show job <jobid>
+
+
+
+
+########################################################
+# train 
+
 
 # activate 
 ssh ch215616@e3-login.tch.harvard.edu

@@ -14,6 +14,20 @@ from transformers import AutoTokenizer
 from model.LISA import LISAForCausalLM
 from utils.utils import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN
 
+def filter_state_dict(state_dict, model_dict):
+    """
+    Filter the state dictionary to only include keys that exist in the model
+    and have matching shapes.
+    """
+    filtered_dict = {}
+    for key, value in state_dict.items():
+        if key in model_dict:
+            if value.shape == model_dict[key].shape:
+                filtered_dict[key] = value
+            else:
+                print(f"Skipping {key} due to shape mismatch: "
+                      f"{value.shape} vs {model_dict[key].shape}")
+    return filtered_dict
 
 def parse_args(args):
     parser = argparse.ArgumentParser(
@@ -42,8 +56,9 @@ def parse_args(args):
     parser.add_argument("--lora_dropout", default=0.05, type=float)
     parser.add_argument("--lora_target_modules", default="q_proj,v_proj", type=str)
     parser.add_argument("--local-rank", default=0, type=int, help="node rank")
-    parser.add_argument("--train_mask_decoder", action="store_true", default=True)
-    parser.add_argument("--use_mm_start_end", action="store_true", default=True)
+    parser.add_argument("--train_mask_decoder", action="store_true", default=False)
+    parser.add_argument("--use_mm_start_end", action="store_true", default=False)
+    parser.add_argument("--grounded", action="store_true", default=False)
     parser.add_argument(
         "--conv_type",
         default="llava_v1",
@@ -69,12 +84,19 @@ def main(args):
     )
     tokenizer.pad_token = tokenizer.unk_token
     # num_added_tokens = tokenizer.add_tokens("[SEG]")  
-    # phrase_tokens = ['<p>', '</p>']
-    # segmentation_tokens = ['[SEG]']
-    # special_tokens = segmentation_tokens + phrase_tokens
-    # num_added_tokens = tokenizer.add_tokens(phrase_tokens, special_tokens=True) # adding tokens to align vocab to phrase grounding
+    phrase_tokens = ['<p>', '</p>']
+    segmentation_tokens = ['[SEG]']
+    if args.grounded: 
+        segmentation_tokens = segmentation_tokens + phrase_tokens
+    num_added_tokens = tokenizer.add_tokens(segmentation_tokens, special_tokens=True) # adding tokens to align vocab to phrase grounding
+    #print('[SEG]' in tokenizer.get_vocab())
     args.seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]
-    from IPython import embed; embed()
+    if args.grounded: 
+        args.p_start_idx = tokenizer.convert_tokens_to_ids('<p>')
+        args.p_end_idx = tokenizer.convert_tokens_to_ids('</p>')        
+        
+        
+    # from IPython import embed; embed()
 
     if args.use_mm_start_end:
         tokenizer.add_tokens(
@@ -87,6 +109,9 @@ def main(args):
         "seg_token_idx": args.seg_token_idx,
         "vision_tower": args.vision_tower,
     }
+    if args.grounded:         
+        model_args['p_start_idx'] = args.p_start_idx
+        model_args['p_end_idx'] = args.p_end_idx        
 
     torch_dtype = torch.float32
     if args.precision == "bf16":
@@ -149,7 +174,61 @@ def main(args):
     model.resize_token_embeddings(len(tokenizer))
 
     state_dict = torch.load(args.weight, map_location="cpu")
-    model.load_state_dict(state_dict, strict=True)
+    
+    model_dict = model.state_dict()
+
+
+
+
+    ##############################
+    # check if token sizes match
+    ##############################
+    # Check state dict token count
+    if 'base_model.model.model.embed_tokens.weight' in state_dict:
+        state_dict_tokens = state_dict['base_model.model.model.embed_tokens.weight'].shape[0] # these are the lora weights 
+    elif 'model.embed_tokens.weight' in state_dict:
+        state_dict_tokens = state_dict['model.embed_tokens.weight'].shape[0]
+    # else:
+    #     print("Couldn't find embedding layer in state dict. Check the layer name.")
+    #     return
+
+    # Check model's current token count
+    model_tokens = model.get_input_embeddings().weight.shape[0] # these are the base weights 
+
+    # Check tokenizer's vocabulary size
+    tokenizer_tokens = len(tokenizer)
+
+    print(f"Tokens in state dict: {state_dict_tokens}")
+    print(f"Tokens in current model: {model_tokens}")
+    print(f"Tokens in tokenizer: {tokenizer_tokens}")
+
+    if state_dict_tokens != model_tokens:
+        print(f"Mismatch: State dict has {state_dict_tokens} tokens, "
+              f"but model has {model_tokens} tokens.")
+    
+    if model_tokens != tokenizer_tokens:
+        print(f"Warning: Model has {model_tokens} tokens, "
+              f"but tokenizer has {tokenizer_tokens} tokens.")
+
+  
+
+
+    
+    # filtered_state_dict = {k: v for k, v in state_dict.items() 
+    #                     if k in model_dict and v.shape == model_dict[k].shape}
+    
+    
+    if model_tokens != tokenizer_tokens or state_dict_tokens != model_tokens: 
+        print("WARNING: trying to resize the token sizes - please exit to proceed ")
+        from IPython import embed; embed()
+        # try to fix 
+        filtered_state_dict = filter_state_dict(state_dict, model_dict)
+        
+        
+        model.load_state_dict(filtered_state_dict, strict=False)
+    else: 
+        model.load_state_dict(state_dict, strict=True)
+        
 
     model = model.merge_and_unload()
     state_dict = {}

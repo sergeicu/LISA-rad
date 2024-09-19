@@ -1,6 +1,12 @@
+# please segment the cars
+# /home/ch215616/ww/code/llm/experiments/LISA/imgs/mrbeast.jpg
+# please segment the fracture 
+# /home/ch215616/ww/code/llm/experiments/LISA/26317536-1_PA-2.png
+
 import argparse
 import os
 import sys
+import json
 
 import cv2
 import numpy as np
@@ -18,9 +24,9 @@ from utils.utils import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="LISA chat")
-    parser.add_argument("--version", default="xinlai/LISA-13B-llama2-v1")
-    parser.add_argument("--local_model_path", default=None, type=str, help="Path to local model weights")
-    parser.add_argument("--vis_save_path", default="./vis_output", type=str)
+    parser.add_argument("--version", default="xinlai/LISA-13B-llama2-v1", help="Hugging Face version")
+    parser.add_argument("--model_path", default=None, type=str, help="Path to local model weights")
+    parser.add_argument("--vis_save_path", default="./vis_output", type=str, help="Path to save visual outputs")
     parser.add_argument(
         "--precision",
         default="bf16",
@@ -42,7 +48,7 @@ def parse_args(args):
         "--conv_type",
         default="llava_v1",
         type=str,
-        choices=["llava_v1", "llava_llama_2"],
+        choices=["llava_v1", "llava_llama_2", "conv_bch_v1"],
     )
     return parser.parse_args(args)
 
@@ -68,19 +74,50 @@ def main(args):
     args = parse_args(args)
     os.makedirs(args.vis_save_path, exist_ok=True)
 
-    # Create model
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.version,
-        cache_dir=None,
-        model_max_length=args.model_max_length,
-        padding_side="right",
-        use_fast=False,
-    )
+    # Determine whether to use local files or Hugging Face
+    use_local = args.model_path is not None    
+
+    if use_local:
+        # Check if model_path exists
+        if not os.path.exists(args.model_path):
+            raise FileNotFoundError(f"Model path not found: {args.model_path}")
+                
+        # Load tokenizer from local path
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.model_path,
+            use_fast=False,
+            model_max_length=args.model_max_length,
+            padding_side="right",
+        )
+        
+        # Load added tokens if provided
+        added_tokens_path = os.path.join(args.model_path, "added_tokens.json")
+        special_tokens_map_path = os.path.join(args.model_path, "special_tokens_map.json")
+
+        if os.path.exists(added_tokens_path):
+            with open(added_tokens_path, "r") as f:
+                added_tokens = json.load(f)
+            for token, index in added_tokens.items():
+                tokenizer.add_tokens(token, special_tokens=True)
+        elif os.path.exists(special_tokens_map_path):
+            with open(special_tokens_map_path, "r") as f:
+                special_tokens_map = json.load(f)
+            tokenizer.add_special_tokens(special_tokens_map)
+        else:
+            print("Warning: No added_tokens.json or special_tokens_map.json found. Make sure your tokenizer includes all necessary tokens.")
+
+    else:
+        # Load tokenizer from Hugging Face
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.version,
+            cache_dir=None,
+            model_max_length=args.model_max_length,
+            padding_side="right",
+            use_fast=False,
+        )
+
     tokenizer.pad_token = tokenizer.unk_token
-    # num_added_tokens = tokenizer.add_tokens("[SEG]")   
     args.seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]
-    
-    # num_added_tokens = tokenizer.add_tokens("[OBJ]")    
 
 
     torch_dtype = torch.float32
@@ -115,10 +152,10 @@ def main(args):
             }
         )
 
-    if args.local_model_path:
+    if use_local:
         # Load the model from local path
         model = LISAForCausalLM.from_pretrained(
-            args.local_model_path,
+            args.model_path,
             low_cpu_mem_usage=True,
             vision_tower=args.vision_tower,
             seg_token_idx=args.seg_token_idx,
@@ -171,10 +208,28 @@ def main(args):
     model.eval()
 
     while True:
+        # prompt = "please segment the cars"
+        # image_path = "/home/ch215616/ww/code/llm/experiments/LISA/imgs/mrbeast.jpg"
+        prompt="what abnormalities are visible in this wrist x-ray? Find where it's described in your report."
+        image_path="/home/ch215616/ww/code/llm/experiments/LISA/26317536-1_PA-2.png"
+        
+        prompt="what are the notable findings in this wrist x-ray? Outline its location in your report."
+        image_path="dataset/bchwrist_images/train/26674539-26674539-1.png"
+    
+        prompt="what are the notable findings in this wrist x-ray? Show where it is detailed in your report."
+        image_path="dataset/bchwrist_images/train/26557126-4_Lateral-3.png"
+        print("pre_model_eval")
+        from IPython import embed; embed()
+        # prompt = input("Please input your prompt: ")
+        # image_path = input("Please input the image path: ")
+        if not os.path.exists(image_path):
+            print("WARNING: File not found in {}".format(image_path))
+            # continue
+        
+        
         conv = conversation_lib.conv_templates[args.conv_type].copy()
         conv.messages = []
-
-        prompt = input("Please input your prompt: ")
+                
         prompt = DEFAULT_IMAGE_TOKEN + "\n" + prompt
         if args.use_mm_start_end:
             replace_token = (
@@ -186,10 +241,6 @@ def main(args):
         conv.append_message(conv.roles[1], "")
         prompt = conv.get_prompt()
 
-        image_path = input("Please input the image path: ")
-        if not os.path.exists(image_path):
-            print("File not found in {}".format(image_path))
-            continue
 
         image_np = cv2.imread(image_path)
         image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
@@ -227,21 +278,25 @@ def main(args):
         input_ids = tokenizer_image_token(prompt, tokenizer, return_tensors="pt")
         input_ids = input_ids.unsqueeze(0).cuda()
         
-        # sv407 - added to equalize vocab - may need to be removed  (was not here by default)
-        # Define the new tokens
-        additional_tokens = {
-            "<im_end>": 32002,
-            "<im_patch>": 32000,
-            "<im_start>": 32001,
-            "[SEG]": 32003
-        }
+        # # sv407 - added to equalize vocab - may need to be removed  (was not here by default)
+        # # Define the new tokens
+        # additional_tokens = {
+        #     "<im_end>": 32002,
+        #     "<im_patch>": 32000,
+        #     "<im_start>": 32001,
+        #     "[SEG]": 32003
+        # }
 
-        # sv407 - added to equalize vocab - may need to be removed  (was not here by default)
-        # Add the new tokens to the tokenizer
-        for token, id in additional_tokens.items():
-            tokenizer.add_tokens([token], special_tokens=True) 
+        # # sv407 - added to equalize vocab - may need to be removed  (was not here by default)
+        # # Add the new tokens to the tokenizer
+        # for token, id in additional_tokens.items():
+        #     tokenizer.add_tokens([token], special_tokens=True) 
                     
-
+        # from IPython import embed; embed()
+        
+        text_input = tokenizer.decode(input_ids[0][input_ids[0] != IMAGE_TOKEN_INDEX], skip_special_tokens=False)
+        
+        
         output_ids, pred_masks = model.evaluate(
             image_clip,
             image,
@@ -252,18 +307,21 @@ def main(args):
             tokenizer=tokenizer,
         )
         output_ids = output_ids[0][output_ids[0] != IMAGE_TOKEN_INDEX]
-        # from IPython import embed; embed()
+        # tokenizer.decode(output_ids, skip_special_tokens=False) # sv407 - temporary skip
+        
         # for c,i in enumerate(output_ids):
         #     print(c)
         #     tokenizer.decode(output_ids[-3], skip_special_tokens=False)
         
-        from IPython import embed; embed()
+        # from IPython import embed; embed()
         
 
                    
         text_output = tokenizer.decode(output_ids, skip_special_tokens=False) # sv407 - temporary skip 
+        print("text_input: \n", text_input)          
+        print("text_output: \n", text_output)        
         text_output = text_output.replace("\n", "").replace("  ", " ")
-        print("text_output: ", text_output)
+
 
         for i, pred_mask in enumerate(pred_masks):
             if pred_mask.shape[0] == 0:
@@ -289,7 +347,11 @@ def main(args):
             save_img = cv2.cvtColor(save_img, cv2.COLOR_RGB2BGR)
             cv2.imwrite(save_path, save_img)
             print("{} has been saved.".format(save_path))
-
+            
+            if np.any(pred_mask)==False:
+                print(f"{''.join(['*']*100)}")
+                print("WARNING: MASK IS ZERO. NO SEGMENTATION IS MADE")
+                print(f"{''.join(['*']*100)}")
 
 if __name__ == "__main__":
     main(sys.argv[1:])

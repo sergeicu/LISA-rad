@@ -1,3 +1,4 @@
+import sys
 from typing import List
 
 import torch
@@ -11,6 +12,8 @@ from utils.utils import (DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN,
 from .llava.model.language_model.llava_llama import (LlavaLlamaForCausalLM,
                                                      LlavaLlamaModel)
 from .segment_anything import build_sam_vit_h
+
+
 
 
 def dice_loss(
@@ -257,7 +260,6 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
         hidden_states.append(self.model.text_hidden_fcs[0](output_hidden_states[-1]))
 
         last_hidden_state = torch.stack(hidden_states, dim=-1).sum(dim=-1)
-        # from IPython import embed; embed()
         pred_embeddings = last_hidden_state[seg_token_mask] # selects only the elements where token corresponds to [SEG] 
         # -> if only one [SEG]
         # In [51]: seg_token_mask.nonzero()
@@ -384,8 +386,17 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
                 output_hidden_states=True,
                 return_dict_in_generate=True,
             )
+            
+            # print("Hello from LISA.py")
+            # from IPython import embed; embed()
             output_hidden_states = outputs.hidden_states[-1]
             output_ids = outputs.sequences
+            
+            if output_ids.size()[1]-1 == output_hidden_states.size()[1]:
+                print("\n\n*******WARNING*******")
+                print("output_hidden_states do not contain IMAGE_TOKEN_INDEX. The padding of seg_token_mask will fail ")
+                print("*******WARNING*******\n\n")
+
 
             seg_token_mask = output_ids[:, 1:] == self.seg_token_idx
             # hack for IMAGE_TOKEN_INDEX (we suppose that there is only one image, and it is in the front)
@@ -402,8 +413,36 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
             assert len(self.model.text_hidden_fcs) == 1
             hidden_states.append(self.model.text_hidden_fcs[0](output_hidden_states))
 
+            
             last_hidden_state = torch.stack(hidden_states, dim=-1).sum(dim=-1)
-            pred_embeddings = last_hidden_state[seg_token_mask]
+
+            print(f"output_hidden_states: {output_hidden_states.size()}")
+            print(f"input_ids:{input_ids.size()}")
+            print(f"output_ids:{output_ids.size()}")
+            print(f"last_hidden_state:{last_hidden_state.size()}")
+            print(f"seg_token_mask:{seg_token_mask.size()}")
+            print(f"\nInput phrase:{tokenizer.decode(input_ids[0][input_ids[0] != -200], skip_special_tokens=False)}")
+            print(f"\nOutput phrase:{tokenizer.decode(output_ids[0][output_ids[0] != -200], skip_special_tokens=False)}")
+            
+
+            # print("inside Lisa.py")
+            # from IPython import embed; embed()
+            # tokenizer.decode(output_ids[0], skip_special_tokens=False) # sv407 - temporary skip
+            # tokenizer.decode(input_ids[0], skip_special_tokens=False) # sv407 - temporary skip
+            if last_hidden_state[0].size()[0]!=seg_token_mask.shape[1]: 
+                # try to fix this 
+                print(f"{''.join(['*']*100)}")
+                print("*\n*\n*\n*\nWARNING: seg_token_mask and last_hidden_state.size(1) do not match\n*\n*\n*\n*")
+                print(f"{''.join(['*']*100)}")
+                # sys.exit('exiting.')
+                adjusted_seg_token_mask = seg_token_mask[:, -last_hidden_state.size(1):]
+                # adjusted_seg_token_mask = seg_token_mask[:, -last_hidden_state.size(1):]
+                pred_embeddings = last_hidden_state[adjusted_seg_token_mask]
+            else:
+                pred_embeddings = last_hidden_state[seg_token_mask]
+            # print('see pred_embeddings')
+            # from IPython import embed; embed()
+            
 
             seg_token_counts = seg_token_mask.int().sum(-1)  # [bs, ]
             seg_token_offset = seg_token_counts.cumsum(-1)

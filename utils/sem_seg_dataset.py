@@ -225,6 +225,14 @@ class SemSegDataset(torch.utils.data.Dataset):
         deterministic=False,
         shorten=False,
     ):
+
+        # Only initialize CLIPImageProcessor if vision_tower is not None
+        if vision_tower is not None:
+            from transformers import CLIPImageProcessor
+            self.clip_image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
+        else:
+            self.clip_image_processor = None
+
         self.shorten = shorten
         self.deterministic=deterministic
         self.grounded=grounded
@@ -237,8 +245,6 @@ class SemSegDataset(torch.utils.data.Dataset):
         self.tokenizer = tokenizer
         self.precision = precision
         self.transform = ResizeLongestSide(image_size)
-        self.clip_image_processor = CLIPImageProcessor.from_pretrained(vision_tower)
-
         self.short_question_list = SHORT_QUESTION_LIST
         self.answer_list = ANSWER_LIST
         self.obj_list = SHORT_OBJ_LIST
@@ -349,45 +355,48 @@ class SemSegDataset(torch.utils.data.Dataset):
                         
             image_path = image[idx]
             label_path = labels[idx]
-            label = Image.open(label_path)
-            label = np.array(label)
-            if ds == "ade20k":
-                label[label == 0] = 255
-                label -= 1
-                label[label == 254] = 255
-            elif ds == "cocostuff"      :
-                for c, i in self.cocostuff_class2index.items():
-                    if "-" in c:
-                        label[label == i] = 255
-            elif ds == "bchwrist":
-                # print("CHECK IF this is oke here - save the image")
-                # from IPython import embed; embed()
-                # print("CHECK IF this is oke here - save the image")
-                
-                for c, i in self.bchwrist_class2index.items():
-                    if "-" in c:
-                        label[label == i] = 255                        
-            img = cv2.imread(image_path)
-            image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            # preprocess image for clip
-            image_clip = self.clip_image_processor.preprocess(
-                image, return_tensors="pt"
-            )["pixel_values"][0]
-            image = self.transform.apply_image(image)  # preprocess image for sam
-            resize = image.shape[:2]
-            unique_label = np.unique(label).tolist()
-            if 255 in unique_label:
-                unique_label.remove(255)
-            if len(unique_label) == 0:
-                return self.__getitem__(0)
-
-            classes = [self.data2classes[ds][class_id] for class_id in unique_label]
-            if len(classes) >= self.num_classes_per_sample:
-                sampled_classes = np.random.choice(
-                    classes, size=self.num_classes_per_sample, replace=False
-                ).tolist()
+            if self.clip_image_processor is None:
+                sampled_classes = ['fracture']
             else:
-                sampled_classes = classes
+                label = Image.open(label_path)
+                label = np.array(label)
+                if ds == "ade20k":
+                    label[label == 0] = 255
+                    label -= 1
+                    label[label == 254] = 255
+                elif ds == "cocostuff"      :
+                    for c, i in self.cocostuff_class2index.items():
+                        if "-" in c:
+                            label[label == i] = 255
+                elif ds == "bchwrist":
+                    # print("CHECK IF this is oke here - save the image")
+                    # from IPython import embed; embed()
+                    # print("CHECK IF this is oke here - save the image")
+                    
+                    for c, i in self.bchwrist_class2index.items():
+                        if "-" in c:
+                            label[label == i] = 255                        
+                img = cv2.imread(image_path)
+                image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                # preprocess image for clip
+                image_clip = self.clip_image_processor.preprocess(
+                    image, return_tensors="pt"
+                )["pixel_values"][0]
+                image = self.transform.apply_image(image)  # preprocess image for sam
+                resize = image.shape[:2]
+                unique_label = np.unique(label).tolist()
+                if 255 in unique_label:
+                    unique_label.remove(255)
+                if len(unique_label) == 0:
+                    return self.__getitem__(0)
+
+                classes = [self.data2classes[ds][class_id] for class_id in unique_label]
+                if len(classes) >= self.num_classes_per_sample:
+                    sampled_classes = np.random.choice(
+                        classes, size=self.num_classes_per_sample, replace=False
+                    ).tolist()
+                else:
+                    sampled_classes = classes
 
         questions = []
         answers = []
@@ -450,7 +459,8 @@ class SemSegDataset(torch.utils.data.Dataset):
             conversations.append(conv.get_prompt())
             i += 1
 
-        image = self.preprocess(torch.from_numpy(image).permute(2, 0, 1).contiguous())
+        if self.clip_image_processor is not None:
+            image = self.preprocess(torch.from_numpy(image).permute(2, 0, 1).contiguous())
 
         if ds in ["paco_lvis", "pascal_part"]:
             masks = []
@@ -466,11 +476,18 @@ class SemSegDataset(torch.utils.data.Dataset):
             label = torch.ones(masks.shape[1], masks.shape[2]) * self.ignore_label
 
         else:
-            label = torch.from_numpy(label).long()
-            masks = []
-            for class_id in class_ids:
-                masks.append(label == class_id)
-            masks = torch.stack(masks, dim=0)
+            if self.clip_image_processor is not None:
+                label = torch.from_numpy(label).long()
+                masks = []
+                for class_id in class_ids:
+                    masks.append(label == class_id)
+                masks = torch.stack(masks, dim=0)
+            else:
+                image = None
+                image_clip = None
+                masks = None
+                label = None
+                resize=None
         return (
             image_path,
             image,
