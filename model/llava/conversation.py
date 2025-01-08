@@ -326,7 +326,7 @@ conv_bch_v1c = Conversation(
 )
 
 
-
+# https://claude.ai/chat/b8dcd2db-6c77-426d-a110-53020626e7a7
 conv_bch_v1d = Conversation(
     system="A chat between a radiologist and an artificial intelligence assistant specializing in radiology. "
     "The assistant helps identify wrist fractures from x-ray images and provides detailed descriptions of the fractures, their location, and relevant details according to radiological guidelines."

@@ -48,7 +48,6 @@ def parse_args(args):
         "--conv_type",
         default="llava_v1",
         type=str,
-        choices=["llava_v1", "llava_llama_2", "conv_bch_v1"],
     )
     return parser.parse_args(args)
 
@@ -208,16 +207,22 @@ def main(args):
     model.eval()
 
     while True:
-        # prompt = "please segment the cars"
-        # image_path = "/home/ch215616/ww/code/llm/experiments/LISA/imgs/mrbeast.jpg"
+        prompt = "please segment the cars"
+        image_path = "/home/ch215616/ww/code/llm/experiments/LISA/imgs/mrbeast.jpg"
         prompt="what abnormalities are visible in this wrist x-ray? Find where it's described in your report."
         image_path="/home/ch215616/ww/code/llm/experiments/LISA/26317536-1_PA-2.png"
         
+        prompt="what abnormalities are visible in this wrist x-ray? Mark the position as described in your report."
+        image_path="dataset/bchwrist_images/train/26712015-1_PA-0.png"
+        gt="<p>transversely oriented fracture through the distal left radial metaphysis</p> the x-ray shows a transversely oriented fracture through the distal left radial metaphysis with early healing and mild residual soft tissue swelling."
+        
         prompt="what are the notable findings in this wrist x-ray? Outline its location in your report."
         image_path="dataset/bchwrist_images/train/26674539-26674539-1.png"
+        gt="<p>minimally-displaced oblique salter-harris ii fracture</p> the x-ray shows a minimally-displaced oblique salter-harris ii fracture of the radial/dorsal aspects of the distal radial metaphysis with early healing and bony sclerosis. there is also mild soft tissue swelling."
     
         prompt="what are the notable findings in this wrist x-ray? Show where it is detailed in your report."
         image_path="dataset/bchwrist_images/train/26557126-4_Lateral-3.png"
+        gt="[SEG] <p>distal scaphoid fracture</p> the image shows a fracture of the distal scaphoid with interval healing as well as similar alignment compared to previous radiographs."
         print("pre_model_eval")
         from IPython import embed; embed()
         # prompt = input("Please input your prompt: ")

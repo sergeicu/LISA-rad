@@ -61,9 +61,9 @@ def parse_args(args):
     parser.add_argument("--grounded", action="store_true", default=False)
     parser.add_argument(
         "--conv_type",
-        default="llava_v1",
+        default="conv_bch_v1",
         type=str,
-        choices=["llava_v1", "llava_llama_2"],
+        choices=["llava_v1", "llava_llama_2", "conv_bch_v1"],
     )
     parser.add_argument("--weight", default="", type=str, required=True)
     parser.add_argument("--save_path", default="./lisa_model", type=str, required=True)

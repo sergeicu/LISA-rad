@@ -10,3 +10,8 @@ cuda*
 vvenv*/
 venv*/
 flagged/
+*.log
+imgs/*.jpeg
+imgs/*.jpg
+*.pth
+*.pt
